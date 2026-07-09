@@ -1,13 +1,23 @@
 .bmi-container {
   width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
 }
 
 .bmi-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background:
+    linear-gradient(180deg, rgba(8, 23, 52, 0.98), rgba(2, 8, 23, 0.99));
+  border: 1px solid rgba(96, 165, 250, 0.18);
   border-radius: 8px;
-  padding: 24px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
+  padding: 28px;
   text-align: left;
+}
+
+.bmi-card h2 {
+  color: #bfdbfe;
+  font-weight: 750;
+  margin-bottom: 22px;
 }
 
 .input-group,
@@ -22,7 +32,7 @@
 .body-fat-grid label {
   display: grid;
   gap: 8px;
-  color: var(--text-h);
+  color: #93c5fd;
   font-size: 14px;
   font-weight: 650;
 }
@@ -36,15 +46,28 @@ input,
 select {
   width: 100%;
   box-sizing: border-box;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(148, 163, 184, 0.24);
   border-radius: 6px;
-  background: var(--bg);
-  color: var(--text-h);
+  background: #06122b;
+  color: #bfdbfe;
   font: inherit;
   padding: 10px 12px;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+input::placeholder {
+  color: #64748b;
+}
+
+input:focus,
+select:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.16);
+  outline: none;
 }
 
 select {
+  background: #081734;
   flex: 0 0 76px;
 }
 
@@ -57,7 +80,8 @@ select {
 .bmi-result,
 .body-fat-result {
   align-items: center;
-  border: 1px solid var(--border);
+  background: rgba(3, 12, 31, 0.72);
+  border: 1px solid rgba(96, 165, 250, 0.18);
   border-radius: 8px;
   display: flex;
   flex-wrap: wrap;
@@ -74,7 +98,7 @@ select {
 
 .number,
 .result-number {
-  color: var(--text-h);
+  color: #bfdbfe;
   font-size: 40px;
   font-weight: 750;
   line-height: 1;
@@ -83,14 +107,15 @@ select {
 .label,
 .result-label,
 .bmi-range {
-  color: var(--text);
+  color: #94a3b8;
   font-size: 14px;
 }
 
 .category-badge,
 .body-fat-badge {
+  box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.28);
   border-radius: 999px;
-  color: white;
+  color: #dbeafe;
   font-size: 14px;
   font-weight: 750;
   padding: 8px 12px;
@@ -102,19 +127,22 @@ select {
 }
 
 .scale-bar {
+  background: #020817;
   border-radius: 999px;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.22);
 }
 
 .scale-segment {
-  color: white;
+  color: #dbeafe;
   font-size: 12px;
   font-weight: 700;
   min-height: 32px;
   padding: 8px 6px;
   text-align: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
 }
 
 .underweight {
@@ -134,8 +162,10 @@ select {
 }
 
 .bmi-indicator {
+  border: 2px solid #93c5fd;
   border-radius: 999px;
-  color: white;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
+  color: #dbeafe;
   font-size: 12px;
   font-weight: 800;
   padding: 4px 8px;

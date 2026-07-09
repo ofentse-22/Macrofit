@@ -15,7 +15,7 @@ body {
 .app {
   max-width: 1200px;
   margin: 0 auto;
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(2, 8, 23, 0.95);
   border-radius: 20px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   overflow: hidden;
@@ -23,7 +23,7 @@ body {
 
 .app-header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  color: #dbeafe;
   padding: 30px;
   text-align: center;
 }
@@ -40,8 +40,8 @@ body {
 
 .app-nav {
   display: flex;
-  background: #f8f9fa;
-  border-bottom: 1px solid #e1e4e8;
+  background: #06122b;
+  border-bottom: 1px solid #1d4ed8;
   padding: 0 20px;
 }
 
@@ -52,14 +52,14 @@ body {
   background: transparent;
   font-size: 1rem;
   font-weight: 600;
-  color: #6c757d;
+  color: #94a3b8;
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
 }
 
 .app-nav button:hover {
-  color: #495057;
+  color: #93c5fd;
   background: rgba(102, 126, 234, 0.1);
 }
 
@@ -83,11 +83,11 @@ body {
 }
 
 .app-footer {
-  background: #f8f9fa;
+  background: #06122b;
   padding: 20px;
   text-align: center;
-  color: #6c757d;
-  border-top: 1px solid #e1e4e8;
+  color: #94a3b8;
+  border-top: 1px solid #1d4ed8;
 }
 
 /* Mobile Responsive */
@@ -108,7 +108,7 @@ body {
 
   .app-nav button {
     padding: 12px;
-    border-bottom: 1px solid #e1e4e8;
+    border-bottom: 1px solid #1d4ed8;
   }
 
   .app-nav button.active::after {
@@ -130,14 +130,14 @@ body {
 }
 
 .bmi-card {
-  background: white;
+  background: #06122b;
   border-radius: 16px;
   padding: 30px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .bmi-card h2 {
-  color: #333;
+  color: #bfdbfe;
   margin-bottom: 25px;
   text-align: center;
   font-size: 1.8rem;
@@ -158,7 +158,7 @@ body {
 
 .input-wrapper label {
   font-weight: 600;
-  color: #555;
+  color: #93c5fd;
   font-size: 0.95rem;
 }
 
@@ -170,7 +170,7 @@ body {
 .input-with-select input {
   flex: 1;
   padding: 12px;
-  border: 2px solid #e1e4e8;
+  border: 2px solid #1d4ed8;
   border-radius: 8px;
   font-size: 1rem;
   transition: border-color 0.3s ease;
@@ -183,9 +183,9 @@ body {
 
 .input-with-select select {
   padding: 12px;
-  border: 2px solid #e1e4e8;
+  border: 2px solid #1d4ed8;
   border-radius: 8px;
-  background: white;
+  background: #020817;
   font-size: 1rem;
   cursor: pointer;
   min-width: 70px;
@@ -194,7 +194,7 @@ body {
 .result-container {
   margin-top: 25px;
   padding-top: 25px;
-  border-top: 2px solid #f0f0f0;
+  border-top: 2px solid #1d4ed8;
 }
 
 .bmi-result {
@@ -209,27 +209,27 @@ body {
 .bmi-value .number {
   font-size: 3rem;
   font-weight: 700;
-  color: #333;
+  color: #bfdbfe;
   display: block;
 }
 
 .bmi-value .label {
   font-size: 0.9rem;
-  color: #888;
+  color: #94a3b8;
 }
 
 .category-badge {
   display: inline-block;
   padding: 8px 20px;
   border-radius: 20px;
-  color: white;
+  color: #dbeafe;
   font-weight: 600;
   font-size: 1.1rem;
   margin-bottom: 10px;
 }
 
 .bmi-range {
-  color: #666;
+  color: #93c5fd;
   font-size: 0.95rem;
 }
 
@@ -253,7 +253,7 @@ body {
   justify-content: center;
   font-size: 0.7rem;
   font-weight: 600;
-  color: white;
+  color: #dbeafe;
   text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
@@ -280,13 +280,13 @@ body {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  color: white;
+  color: #dbeafe;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
   font-size: 0.8rem;
-  border: 3px solid white;
+  border: 3px solid #93c5fd;
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 
@@ -316,14 +316,14 @@ body {
 }
 
 .bodyfat-card {
-  background: white;
+  background: #06122b;
   border-radius: 16px;
   padding: 30px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .bodyfat-card h2 {
-  color: #333;
+  color: #bfdbfe;
   margin-bottom: 25px;
   text-align: center;
   font-size: 1.8rem;
@@ -338,9 +338,9 @@ body {
 
 .gender-selector button {
   padding: 10px 30px;
-  border: 2px solid #e1e4e8;
+  border: 2px solid #1d4ed8;
   border-radius: 8px;
-  background: white;
+  background: #020817;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
@@ -348,12 +348,12 @@ body {
 }
 
 .gender-selector button:hover {
-  background: #f8f9fa;
+  background: #081734;
 }
 
 .gender-selector button.active {
   background: #667eea;
-  color: white;
+  color: #dbeafe;
   border-color: #667eea;
 }
 
@@ -366,9 +366,9 @@ body {
 
 .unit-selector button {
   padding: 8px 20px;
-  border: 2px solid #e1e4e8;
+  border: 2px solid #1d4ed8;
   border-radius: 8px;
-  background: white;
+  background: #020817;
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
@@ -376,19 +376,19 @@ body {
 }
 
 .unit-selector button:hover {
-  background: #f8f9fa;
+  background: #081734;
 }
 
 .unit-selector button.active {
   background: #667eea;
-  color: white;
+  color: #dbeafe;
   border-color: #667eea;
 }
 
 .result-container {
   margin-top: 25px;
   padding-top: 25px;
-  border-top: 2px solid #f0f0f0;
+  border-top: 2px solid #1d4ed8;
 }
 
 .bf-result {
@@ -398,13 +398,13 @@ body {
 .bf-value .number {
   font-size: 3rem;
   font-weight: 700;
-  color: #333;
+  color: #bfdbfe;
   display: block;
 }
 
 .bf-value .label {
   font-size: 0.9rem;
-  color: #888;
+  color: #94a3b8;
 }
 
 .bf-details {
@@ -413,11 +413,11 @@ body {
 
 .bf-details p {
   margin: 5px 0;
-  color: #555;
+  color: #93c5fd;
 }
 
 .bf-details strong {
-  color: #333;
+  color: #bfdbfe;
 }
 
 .bf-image-container {
@@ -434,7 +434,7 @@ body {
 
 .image-caption {
   margin-top: 10px;
-  color: #888;
+  color: #94a3b8;
   font-size: 0.9rem;
 }
 
@@ -462,21 +462,21 @@ body {
 }
 
 .workout-card {
-  background: white;
+  background: #06122b;
   border-radius: 16px;
   padding: 30px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .workout-card h2 {
-  color: #333;
+  color: #bfdbfe;
   margin-bottom: 25px;
   text-align: center;
   font-size: 1.8rem;
 }
 
 .exercise-form {
-  background: #f8f9fa;
+  background: #081734;
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 30px;
@@ -484,7 +484,7 @@ body {
 
 .exercise-form h3 {
   margin-bottom: 20px;
-  color: #495057;
+  color: #93c5fd;
 }
 
 .form-grid {
@@ -496,7 +496,7 @@ body {
 .input-wrapper label {
   display: block;
   font-weight: 600;
-  color: #555;
+  color: #93c5fd;
   margin-bottom: 5px;
   font-size: 0.9rem;
 }
@@ -504,7 +504,7 @@ body {
 .input-wrapper input {
   width: 100%;
   padding: 10px;
-  border: 2px solid #e1e4e8;
+  border: 2px solid #1d4ed8;
   border-radius: 8px;
   font-size: 1rem;
   transition: border-color 0.3s ease;
@@ -534,7 +534,7 @@ body {
 
 .btn-add {
   background: #667eea;
-  color: white;
+  color: #dbeafe;
 }
 
 .btn-add:hover {
@@ -545,7 +545,7 @@ body {
 
 .btn-update {
   background: #28a745;
-  color: white;
+  color: #dbeafe;
 }
 
 .btn-update:hover {
@@ -553,8 +553,8 @@ body {
 }
 
 .btn-cancel {
-  background: #6c757d;
-  color: white;
+  background: #1e3a8a;
+  color: #dbeafe;
 }
 
 .btn-cancel:hover {
@@ -567,19 +567,19 @@ body {
 
 .exercises-list h3 {
   margin-bottom: 15px;
-  color: #495057;
+  color: #93c5fd;
 }
 
 .empty-message {
   text-align: center;
-  color: #888;
+  color: #94a3b8;
   padding: 30px;
-  background: #f8f9fa;
+  background: #081734;
   border-radius: 8px;
 }
 
 .exercise-item {
-  background: #f8f9fa;
+  background: #081734;
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 15px;
@@ -598,7 +598,7 @@ body {
 }
 
 .exercise-info h4 {
-  color: #333;
+  color: #bfdbfe;
   font-size: 1.1rem;
   margin-bottom: 5px;
 }
@@ -610,6 +610,130 @@ body {
 }
 
 .exercise-stats span {
-  color: #666;
+  color: #93c5fd;
   font-size: 0.9rem;
+}
+
+/* Dark polish overrides */
+body {
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.24), transparent 34rem),
+    linear-gradient(135deg, #020617 0%, #071225 48%, #0b1f44 100%);
+  color: #cbd5e1;
+}
+
+.app {
+  background: rgba(2, 8, 23, 0.92);
+  border: 1px solid rgba(96, 165, 250, 0.18);
+  border-radius: 14px;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.48);
+}
+
+.app-header {
+  background: linear-gradient(135deg, #020817 0%, #0b1f44 52%, #1e3a8a 100%);
+  border-bottom: 1px solid rgba(96, 165, 250, 0.16);
+}
+
+.app-header h1 {
+  color: #bfdbfe;
+  font-weight: 800;
+}
+
+.app-header p,
+.app-footer {
+  color: #94a3b8;
+}
+
+.app-nav,
+.app-footer {
+  background: rgba(4, 13, 33, 0.92);
+  border-color: rgba(96, 165, 250, 0.16);
+}
+
+.app-nav button {
+  color: #94a3b8;
+}
+
+.app-nav button:hover {
+  background: rgba(59, 130, 246, 0.12);
+  color: #93c5fd;
+}
+
+.app-nav button.active {
+  color: #93c5fd;
+}
+
+.app-nav button.active::after {
+  background: linear-gradient(90deg, #1d4ed8, #60a5fa);
+}
+
+.app-main {
+  background: transparent;
+}
+
+.bmi-card,
+.bodyfat-card,
+.workout-card,
+.exercise-form,
+.exercise-item,
+.empty-message {
+  background: #06122b;
+  border: 1px solid rgba(96, 165, 250, 0.18);
+  color: #cbd5e1;
+}
+
+.bodyfat-card h2,
+.workout-card h2,
+.exercise-form h3,
+.exercises-list h3,
+.exercise-info h4,
+.bf-details strong {
+  color: #bfdbfe;
+}
+
+.subtitle,
+.bf-value .label,
+.bf-details p,
+.exercise-stats span,
+.empty-message,
+.image-caption {
+  color: #94a3b8;
+}
+
+.gender-selector button,
+.unit-selector button,
+.input-wrapper input {
+  background: #020817;
+  border-color: rgba(96, 165, 250, 0.24);
+  color: #93c5fd;
+}
+
+.gender-selector button:hover,
+.unit-selector button:hover {
+  background: #081734;
+}
+
+.gender-selector button.active,
+.unit-selector button.active,
+.btn-add {
+  background: #1d4ed8;
+  border-color: #60a5fa;
+  color: #bfdbfe;
+}
+
+.btn-add:hover {
+  background: #2563eb;
+  box-shadow: 0 8px 22px rgba(37, 99, 235, 0.28);
+}
+
+.result-container {
+  border-color: rgba(96, 165, 250, 0.16);
+}
+
+.error-message {
+  background: rgba(127, 29, 29, 0.24);
+  border: 1px solid rgba(248, 113, 113, 0.28);
+  border-radius: 8px;
+  color: #fecaca;
+  padding: 12px;
 }

@@ -5,57 +5,35 @@ import "./BodyFatCalculator.css";
 export default function BodyFatCalculator() {
   const [gender, setGender] = useState("male");
   const [waist, setWaist] = useState("");
-  const [neck, setNeck] = useState("");
   const [height, setHeight] = useState("");
-  const [hip, setHip] = useState("");
   const [unit, setUnit] = useState("cm");
   const [error, setError] = useState("");
   const [bodyFat, setBodyFat] = useState(null);
   const [category, setCategory] = useState(null);
 
   // Pure function - no side effects
-  const calculateBodyFat = (waistVal, neckVal, heightVal, hipVal, genderVal, unitVal) => {
+  const calculateBodyFat = (waistVal, heightVal, genderVal, unitVal) => {
     const waistNum = parseFloat(waistVal);
-    const neckNum = parseFloat(neckVal);
     const heightNum = parseFloat(heightVal);
     
-    if (!waistNum || !neckNum || !heightNum) {
+    if (!waistNum || !heightNum) {
       return { error: "Please fill in all required fields" };
     }
 
-    if (waistNum <= 0 || neckNum <= 0 || heightNum <= 0) {
+    if (waistNum <= 0 || heightNum <= 0) {
       return { error: "All measurements must be greater than 0" };
     }
 
-    if (genderVal === "female" && !parseFloat(hipVal)) {
-      return { error: "Please enter hip measurement for females" };
-    }
-
     let waistCm = unitVal === "in" ? waistNum * 2.54 : waistNum;
-    let neckCm = unitVal === "in" ? neckNum * 2.54 : neckNum;
     let heightCm = unitVal === "in" ? heightNum * 2.54 : heightNum;
-    
-    if (waistCm <= neckCm) {
-      return { error: "Waist measurement should be greater than neck measurement" };
-    }
 
     let bodyFatResult = 0;
 
     try {
       if (genderVal === "male") {
-        bodyFatResult = 495 / (1.0324 - 0.19077 * Math.log10(waistCm - neckCm) + 0.15456 * Math.log10(heightCm)) - 450;
+        bodyFatResult = 64 - 20 * (heightCm / waistCm);
       } else {
-        const hipNum = parseFloat(hipVal);
-        if (!hipNum || hipNum <= 0) {
-          return { error: "Please enter a valid hip measurement" };
-        }
-        let hipCm = unitVal === "in" ? hipNum * 2.54 : hipNum;
-        
-        if (hipCm <= neckCm) {
-          return { error: "Hip measurement should be greater than neck measurement" };
-        }
-        
-        bodyFatResult = 495 / (1.29579 - 0.35004 * Math.log10(waistCm + hipCm - neckCm) + 0.22100 * Math.log10(heightCm)) - 450;
+        bodyFatResult = 76 - 20 * (heightCm / waistCm);
       }
     } catch (err) {
       return { error: "Error calculating body fat. Please check your measurements." };
@@ -80,78 +58,68 @@ export default function BodyFatCalculator() {
         name: "Essential Fat", 
         range: "2-5%", 
         description: "Essential for survival. Only seen in elite athletes.",
-        color: "#4CAF50",
-        emoji: "💪"
+        color: "#4CAF50"
       };
       if (bf < 14) return { 
         name: "Athletic", 
         range: "6-13%", 
         description: "Common in fitness enthusiasts and athletes.",
-        color: "#2196F3",
-        emoji: "🏋️"
+        color: "#2196F3"
       };
       if (bf < 18) return { 
         name: "Fitness", 
         range: "14-17%", 
         description: "Good fitness level with visible muscle definition.",
-        color: "#FF9800",
-        emoji: "💪"
+        color: "#FF9800"
       };
       if (bf < 25) return { 
         name: "Average", 
         range: "18-24%", 
         description: "Average body fat percentage for men.",
-        color: "#FF5722",
-        emoji: "👤"
+        color: "#FF5722"
       };
       return { 
         name: "High", 
         range: "25%+", 
         description: "Consider lifestyle changes to reduce body fat.",
-        color: "#F44336",
-        emoji: "⚠️"
+        color: "#F44336"
       };
     } else {
       if (bf < 14) return { 
         name: "Essential Fat", 
         range: "10-13%", 
         description: "Essential for survival. Only seen in elite athletes.",
-        color: "#4CAF50",
-        emoji: "💪"
+        color: "#4CAF50"
       };
       if (bf < 21) return { 
         name: "Athletic", 
         range: "14-20%", 
         description: "Common in fitness enthusiasts and athletes.",
-        color: "#2196F3",
-        emoji: "🏋️"
+        color: "#2196F3"
       };
       if (bf < 25) return { 
         name: "Fitness", 
         range: "21-24%", 
         description: "Good fitness level with visible muscle definition.",
-        color: "#FF9800",
-        emoji: "💪"
+        color: "#FF9800"
       };
       if (bf < 32) return { 
         name: "Average", 
         range: "25-31%", 
         description: "Average body fat percentage for women.",
-        color: "#FF5722",
-        emoji: "👤"
+        color: "#FF5722"
       };
       return { 
         name: "High", 
         range: "32%+", 
         description: "Consider lifestyle changes to reduce body fat.",
-        color: "#F44336",
-        emoji: "⚠️"
+        color: "#F44336"
       };
     }
   };
 
   const handleCalculate = () => {
-    const result = calculateBodyFat(waist, neck, height, hip, gender, unit);
+    const result = calculateBodyFat(waist, height, gender, unit);
     
     if (result.error) {
       setError(result.error);
@@ -168,9 +136,7 @@ export default function BodyFatCalculator() {
 
   const handleClear = () => {
     setWaist("");
-    setNeck("");
     setHeight("");
-    setHip("");
     setError("");
     setBodyFat(null);
     setCategory(null);
@@ -200,21 +166,20 @@ export default function BodyFatCalculator() {
   return (
     <div className="bodyfat-container">
       <div className="bodyfat-card">
-        <h2>🎯 Body Fat Calculator</h2>
-        <p className="subtitle">Navy Method - US Navy Circumference Method</p>
+        <h2>Body Fat Calculator</h2>
         
         <div className="gender-selector">
           <button 
             className={gender === "male" ? "active" : ""}
             onClick={() => handleGenderChange("male")}
           >
-            👨 Male
+            Male
           </button>
           <button 
             className={gender === "female" ? "active" : ""}
             onClick={() => handleGenderChange("female")}
           >
-            👩 Female
+            Female
           </button>
         </div>
 
@@ -232,18 +197,6 @@ export default function BodyFatCalculator() {
           </div>
 
           <div className="input-wrapper">
-            <label>Neck Circumference *</label>
-            <input
-              type="number"
-              placeholder={`Enter neck measurement (${unit})`}
-              value={neck}
-              onChange={handleInputChange(setNeck)}
-              min="0"
-              step="0.1"
-            />
-          </div>
-
-          <div className="input-wrapper">
             <label>Height *</label>
             <input
               type="number"
@@ -254,20 +207,6 @@ export default function BodyFatCalculator() {
               step="0.1"
             />
           </div>
-
-          {gender === "female" && (
-            <div className="input-wrapper">
-              <label>Hip Circumference *</label>
-              <input
-                type="number"
-                placeholder={`Enter hip measurement (${unit})`}
-                value={hip}
-                onChange={handleInputChange(setHip)}
-                min="0"
-                step="0.1"
-              />
-            </div>
-          )}
 
           <div className="unit-selector">
             <span className="unit-label">Units:</span>
@@ -296,7 +235,7 @@ export default function BodyFatCalculator() {
 
           {error && (
             <div className="error-message">
-              ⚠️ {error}
+              {error}
             </div>
           )}
         </div>
@@ -310,7 +249,7 @@ export default function BodyFatCalculator() {
               </div>
               <div className="bf-details">
                 <div className="category-badge" style={{ backgroundColor: category.color }}>
-                  {category.emoji} {category.name}
+                  {category.name}
                 </div>
                 <p>Healthy Range: <strong>{category.range}</strong></p>
                 <p className="category-description">{category.description}</p>
@@ -320,12 +259,10 @@ export default function BodyFatCalculator() {
         )}
 
         <div className="info-section">
-          <h4>📊 How to Measure</h4>
+          <h4>How to Measure</h4>
           <ul>
             <li><strong>Waist:</strong> Measure at the narrowest point (for men) or at the navel (for women)</li>
-            <li><strong>Neck:</strong> Measure just below the Adam's apple</li>
             <li><strong>Height:</strong> Measure without shoes</li>
-            {gender === "female" && <li><strong>Hips:</strong> Measure at the widest point of the buttocks</li>}
           </ul>
         </div>
       </div>

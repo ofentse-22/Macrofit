@@ -11,7 +11,7 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>💪 FitTrack</h1>
+        <h1>FitTrack</h1>
         <p>Your Complete Fitness Companion</p>
       </header>
 
@@ -43,7 +43,7 @@ function App() {
       </main>
 
       <footer className="app-footer">
-        <p>© 2026 FitTrack - Your Fitness Journey Starts Here</p>
+        <p>2026 FitTrack - Your Fitness Journey Starts Here</p>
       </footer>
     </div>
   );

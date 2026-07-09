@@ -47,7 +47,7 @@ button:disabled {
 .btn-update,
 .btn-complete {
   background: #16a34a;
-  color: white;
+  color: #dbeafe;
 }
 
 .btn-cancel,
@@ -59,7 +59,7 @@ button:disabled {
 
 .btn-delete {
   background: #dc2626;
-  color: white;
+  color: #dbeafe;
 }
 
 .exercises-list {
