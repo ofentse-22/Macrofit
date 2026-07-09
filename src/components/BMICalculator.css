@@ -1,0 +1,145 @@
+.bmi-container {
+  width: 100%;
+}
+
+.bmi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 24px;
+  text-align: left;
+}
+
+.input-group,
+.form-grid,
+.body-fat-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.input-wrapper,
+.body-fat-grid label {
+  display: grid;
+  gap: 8px;
+  color: var(--text-h);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.input-with-select {
+  display: flex;
+  gap: 8px;
+}
+
+input,
+select {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-h);
+  font: inherit;
+  padding: 10px 12px;
+}
+
+select {
+  flex: 0 0 76px;
+}
+
+.result-container {
+  display: grid;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.bmi-result,
+.body-fat-result {
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 18px;
+}
+
+.bmi-value,
+.body-fat-result > div {
+  display: grid;
+  gap: 4px;
+}
+
+.number,
+.result-number {
+  color: var(--text-h);
+  font-size: 40px;
+  font-weight: 750;
+  line-height: 1;
+}
+
+.label,
+.result-label,
+.bmi-range {
+  color: var(--text);
+  font-size: 14px;
+}
+
+.category-badge,
+.body-fat-badge {
+  border-radius: 999px;
+  color: white;
+  font-size: 14px;
+  font-weight: 750;
+  padding: 8px 12px;
+}
+
+.bmi-scale {
+  position: relative;
+  padding-top: 30px;
+}
+
+.scale-bar {
+  border-radius: 999px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  overflow: hidden;
+}
+
+.scale-segment {
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  min-height: 32px;
+  padding: 8px 6px;
+  text-align: center;
+}
+
+.underweight {
+  background: #f59e0b;
+}
+
+.normal {
+  background: #16a34a;
+}
+
+.overweight {
+  background: #ea580c;
+}
+
+.obesity {
+  background: #dc2626;
+}
+
+.bmi-indicator {
+  border-radius: 999px;
+  color: white;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 4px 8px;
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+}

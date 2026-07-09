@@ -1,0 +1,615 @@
+/* src/App.css */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.app {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.app-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 30px;
+  text-align: center;
+}
+
+.app-header h1 {
+  font-size: 2.5rem;
+  margin-bottom: 5px;
+}
+
+.app-header p {
+  opacity: 0.9;
+  font-size: 1.1rem;
+}
+
+.app-nav {
+  display: flex;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e1e4e8;
+  padding: 0 20px;
+}
+
+.app-nav button {
+  flex: 1;
+  padding: 15px 20px;
+  border: none;
+  background: transparent;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #6c757d;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.app-nav button:hover {
+  color: #495057;
+  background: rgba(102, 126, 234, 0.1);
+}
+
+.app-nav button.active {
+  color: #667eea;
+}
+
+.app-nav button.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+}
+
+.app-main {
+  padding: 30px;
+  min-height: 500px;
+}
+
+.app-footer {
+  background: #f8f9fa;
+  padding: 20px;
+  text-align: center;
+  color: #6c757d;
+  border-top: 1px solid #e1e4e8;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .app {
+    border-radius: 10px;
+    margin: 10px;
+  }
+
+  .app-header h1 {
+    font-size: 2rem;
+  }
+
+  .app-nav {
+    flex-direction: column;
+    padding: 0;
+  }
+
+  .app-nav button {
+    padding: 12px;
+    border-bottom: 1px solid #e1e4e8;
+  }
+
+  .app-nav button.active::after {
+    height: 2px;
+  }
+
+  .app-main {
+    padding: 15px;
+  }
+
+  .app-footer {
+    padding: 15px;
+  }
+}
+/* src/components/BMICalculator.css */
+.bmi-container {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.bmi-card {
+  background: white;
+  border-radius: 16px;
+  padding: 30px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.bmi-card h2 {
+  color: #333;
+  margin-bottom: 25px;
+  text-align: center;
+  font-size: 1.8rem;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 25px;
+}
+
+.input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-wrapper label {
+  font-weight: 600;
+  color: #555;
+  font-size: 0.95rem;
+}
+
+.input-with-select {
+  display: flex;
+  gap: 10px;
+}
+
+.input-with-select input {
+  flex: 1;
+  padding: 12px;
+  border: 2px solid #e1e4e8;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.input-with-select input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.input-with-select select {
+  padding: 12px;
+  border: 2px solid #e1e4e8;
+  border-radius: 8px;
+  background: white;
+  font-size: 1rem;
+  cursor: pointer;
+  min-width: 70px;
+}
+
+.result-container {
+  margin-top: 25px;
+  padding-top: 25px;
+  border-top: 2px solid #f0f0f0;
+}
+
+.bmi-result {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.bmi-value {
+  margin-bottom: 15px;
+}
+
+.bmi-value .number {
+  font-size: 3rem;
+  font-weight: 700;
+  color: #333;
+  display: block;
+}
+
+.bmi-value .label {
+  font-size: 0.9rem;
+  color: #888;
+}
+
+.category-badge {
+  display: inline-block;
+  padding: 8px 20px;
+  border-radius: 20px;
+  color: white;
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin-bottom: 10px;
+}
+
+.bmi-range {
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.bmi-scale {
+  position: relative;
+  padding: 20px 0;
+}
+
+.scale-bar {
+  display: flex;
+  height: 30px;
+  border-radius: 15px;
+  overflow: hidden;
+  position: relative;
+}
+
+.scale-segment {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+.scale-segment.underweight {
+  background: #ffc107;
+}
+
+.scale-segment.normal {
+  background: #4caf50;
+}
+
+.scale-segment.overweight {
+  background: #ff9800;
+}
+
+.scale-segment.obesity {
+  background: #f44336;
+}
+
+.bmi-indicator {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+  border: 3px solid white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+@media (max-width: 768px) {
+  .bmi-card {
+    padding: 20px;
+  }
+
+  .bmi-value .number {
+    font-size: 2.5rem;
+  }
+
+  .scale-segment {
+    font-size: 0.6rem;
+  }
+
+  .bmi-indicator {
+    width: 35px;
+    height: 35px;
+    font-size: 0.7rem;
+  }
+}
+/* src/components/BodyFatCalculator.css */
+.bodyfat-container {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.bodyfat-card {
+  background: white;
+  border-radius: 16px;
+  padding: 30px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.bodyfat-card h2 {
+  color: #333;
+  margin-bottom: 25px;
+  text-align: center;
+  font-size: 1.8rem;
+}
+
+.gender-selector {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 25px;
+  justify-content: center;
+}
+
+.gender-selector button {
+  padding: 10px 30px;
+  border: 2px solid #e1e4e8;
+  border-radius: 8px;
+  background: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.gender-selector button:hover {
+  background: #f8f9fa;
+}
+
+.gender-selector button.active {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+.unit-selector {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  justify-content: center;
+}
+
+.unit-selector button {
+  padding: 8px 20px;
+  border: 2px solid #e1e4e8;
+  border-radius: 8px;
+  background: white;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.unit-selector button:hover {
+  background: #f8f9fa;
+}
+
+.unit-selector button.active {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+.result-container {
+  margin-top: 25px;
+  padding-top: 25px;
+  border-top: 2px solid #f0f0f0;
+}
+
+.bf-result {
+  text-align: center;
+}
+
+.bf-value .number {
+  font-size: 3rem;
+  font-weight: 700;
+  color: #333;
+  display: block;
+}
+
+.bf-value .label {
+  font-size: 0.9rem;
+  color: #888;
+}
+
+.bf-details {
+  margin: 15px 0;
+}
+
+.bf-details p {
+  margin: 5px 0;
+  color: #555;
+}
+
+.bf-details strong {
+  color: #333;
+}
+
+.bf-image-container {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.bf-image {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.image-caption {
+  margin-top: 10px;
+  color: #888;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+  .bodyfat-card {
+    padding: 20px;
+  }
+
+  .gender-selector {
+    flex-direction: column;
+  }
+
+  .bf-value .number {
+    font-size: 2.5rem;
+  }
+
+  .bf-image {
+    max-height: 200px;
+  }
+}
+/* src/components/WorkoutTracker.css */
+.workout-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.workout-card {
+  background: white;
+  border-radius: 16px;
+  padding: 30px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.workout-card h2 {
+  color: #333;
+  margin-bottom: 25px;
+  text-align: center;
+  font-size: 1.8rem;
+}
+
+.exercise-form {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 30px;
+}
+
+.exercise-form h3 {
+  margin-bottom: 20px;
+  color: #495057;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.input-wrapper label {
+  display: block;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 5px;
+  font-size: 0.9rem;
+}
+
+.input-wrapper input {
+  width: 100%;
+  padding: 10px;
+  border: 2px solid #e1e4e8;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.input-wrapper input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  justify-content: flex-end;
+}
+
+.btn-add, .btn-update, .btn-cancel {
+  padding: 10px 25px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-add {
+  background: #667eea;
+  color: white;
+}
+
+.btn-add:hover {
+  background: #5a6fd6;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-update {
+  background: #28a745;
+  color: white;
+}
+
+.btn-update:hover {
+  background: #218838;
+}
+
+.btn-cancel {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-cancel:hover {
+  background: #5a6268;
+}
+
+.exercises-list {
+  margin-top: 20px;
+}
+
+.exercises-list h3 {
+  margin-bottom: 15px;
+  color: #495057;
+}
+
+.empty-message {
+  text-align: center;
+  color: #888;
+  padding: 30px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.exercise-item {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 15px;
+  transition: all 0.3s ease;
+}
+
+.exercise-item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.exercise-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 15px;
+}
+
+.exercise-info h4 {
+  color: #333;
+  font-size: 1.1rem;
+  margin-bottom: 5px;
+}
+
+.exercise-stats {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.exercise-stats span {
+  color: #666;
+  font-size: 0.9rem;
+}
