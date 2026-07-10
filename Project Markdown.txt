@@ -1,0 +1,28 @@
+# docs/scope.md
+## MVP Features (Must-Have)
+1. ✅ BMI Calculator with unit conversion
+2. ✅ Body Fat Calculator (Navy Method)
+3. ✅ Workout Tracker with sets/reps/weight/rest
+4. ✅ Persistent data storage (localStorage)
+5. ✅ Responsive design (mobile-first)
+6. ✅ Clean, professional UI
+
+## Nice-to-Have (v1.1)
+1. ⬜ User authentication (login/signup)
+2. ⬜ Client dashboard with progress charts
+3. ⬜ Multiple workout templates
+4. ⬜ Exercise library with images/videos
+5. ⬜ Export data to PDF/Excel
+
+## Future Features (v2.0)
+1. ⬜ Social sharing/community
+2. ⬜ AI-powered workout suggestions
+3. ⬜ Integration with fitness wearables
+4. ⬜ Nutrition tracking
+5. ⬜ Video recording/analysis
+
+## Out of Scope for v1
+- ❌ Payment processing
+- ❌ Real-time collaboration
+- ❌ Native mobile apps
+- ❌ Advanced analytics
