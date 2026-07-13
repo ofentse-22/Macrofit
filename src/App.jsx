@@ -1,4 +1,3 @@
-// src/App.jsx
 import { useState } from 'react';
 import BMICalculator from './components/BMICalculator';
 import BodyFatCalculator from './components/BodyFatCalculator';
@@ -29,6 +28,7 @@ function App() {
       </nav>
 
       <main className="app-main">
+        {activeTab === 'dashboard' && <Dashboard />}
         {activeTab === 'bmi' && <BMICalculator />}
         {activeTab === 'bodyfat' && <BodyFatCalculator />}
         {activeTab === 'workout' && <WorkoutTracker />}
@@ -46,4 +46,3 @@ function App() {
 }
 
 export default App;
-        {activeTab === 'dashboard' && <Dashboard />}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 
 const fallbackProgress = [
   { date: "Week 1", bmi: 25.8 },
@@ -6,6 +6,14 @@ const fallbackProgress = [
   { date: "Week 3", bmi: 24.7 },
   { date: "Week 4", bmi: 24.1 },
 ];
+
+function getDataSaved(key) {
+  try {
+    return JSON.parse(localStorage.getItem(key) || "[]");
+  } catch {
+    return [];
+  }
+}
 
 function ProgressChart({ data }) {
   const values = data.map((entry) => Number(entry.bmi)).filter(Number.isFinite);
@@ -42,15 +50,18 @@ export default function Dashboard() {
 
   useEffect(() => {
     try {
-      setProgressData(JSON.parse(localStorage.getItem("fitnessHistory") || "[]"));
-      setWorkouts(JSON.parse(localStorage.getItem("workouts") || "[]"));
+      setProgressData(getDataSaved("fitnessHistory"));
+      setWorkouts(getDataSaved("workouts"));
     } catch {
       setProgressData([]);
       setWorkouts([]);
     }
   }, []);
 
-  const latestBmi = progressData.at(-1)?.bmi ?? "--";
+  const latestBmi =
+  progressData.length > 0
+    ? progressData[progressData.length - 1].bmi
+    : "--";
   const completedSets = workouts.reduce((total, workout) => total + (workout.completedSets || 0), 0);
 
   return (
