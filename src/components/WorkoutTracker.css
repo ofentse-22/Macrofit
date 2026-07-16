@@ -136,3 +136,22 @@ button:disabled {
     display: grid;
   }
 }
+.exercise-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.exercise-thumbnail {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 12px;
+    border: 2px solid #2b6cff;
+    background: #111;
+}
+
+.exercise-info {
+    display: flex;
+    flex-direction: column;
+}

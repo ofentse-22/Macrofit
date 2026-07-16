@@ -1,4 +1,3 @@
-// src/components/BMICalculator.jsx
 import { useState } from "react";
 import "./BMICalculator.css";
 
@@ -22,6 +21,29 @@ export default function BMICalculator() {
   };
 
   const bmi = calculateBMI();
+
+  const saveBMIRecord = () => {
+    if (bmi === null) return;
+
+    const history = JSON.parse(localStorage.getItem("fitnessHistory") || "[]");
+    
+    const newRecord = {
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      bmi: parseFloat(bmi.toFixed(1)),
+      timestamp: new Date().toISOString()
+    };
+
+    
+    const filtered = history.filter(record => 
+      record.date !== newRecord.date
+    );
+
+    const updatedHistory = [...filtered, newRecord]
+      .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+    localStorage.setItem("fitnessHistory", JSON.stringify(updatedHistory));
+    alert(`BMI ${bmi.toFixed(1)} saved successfully! Check Dashboard.`);
+  };
 
   const getCategory = (bmi) => {
     if (bmi === null) return "";
@@ -90,6 +112,10 @@ export default function BMICalculator() {
               </div>
               <div className="bmi-range">Range: {category.range}</div>
             </div>
+
+            <button className="primary-button" onClick={saveBMIRecord} style={{ marginTop: "20px" }}>
+              Save BMI Record
+            </button>
 
             <div className="bmi-scale">
               <div className="scale-bar">

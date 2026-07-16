@@ -4,8 +4,13 @@ export default function ExerciseCard({ exercise }) {
       <h3>{exercise.name}</h3>
       <p><strong>Category:</strong> {exercise.category}</p>
       <p>{exercise.instructions}</p>
+
       {exercise.image && (
-        <img src={exercise.image} alt={exercise.name} />
+        <img
+          src={exercise.image}
+          alt={exercise.name}
+          className="exercise-image"
+        />
       )}
     </div>
   );
