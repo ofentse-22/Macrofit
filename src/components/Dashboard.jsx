@@ -8,22 +8,50 @@ function getDataSaved(key) {
   }
 }
 
+function calculateStreak(workouts) {
+  if (workouts.length === 0) return 0;
+
+  // Get unique dates with workouts
+  const workoutDates = [...new Set(workouts.map(w => {
+    const date = new Date(w.createdAt);
+    return date.toISOString().split('T')[0]; // YYYY-MM-DD format
+  }))];
+
+  // Sort dates descending (newest first)
+  const sortedDates = workoutDates.sort((a, b) => new Date(b) - new Date(a));
+
+  let streak = 0;
+  let expectedDate = new Date();
+
+  for (let dateStr of sortedDates) {
+    const workoutDate = new Date(dateStr);
+    const diffDays = Math.floor((expectedDate - workoutDate) / (1000 * 60 * 60 * 24));
+
+    if (diffDays <= 1) {
+      streak++;
+      expectedDate = workoutDate;
+    } else {
+      break;
+    }
+  }
+
+  return streak;
+}
+
 function ProgressChart({ data }) {
-  const validData = data.filter((entry) => Number.isFinite(Number(entry.bmi)));
-  
+  const validData = data.filter(entry => Number.isFinite(Number(entry.bmi)));
   const fallbackProgress = [
     { date: "Week 1", bmi: 25.8 },
     { date: "Week 2", bmi: 25.2 },
     { date: "Week 3", bmi: 24.7 },
-    { date: "Week 4", bmi: 24.1 },
+    { date: "Week 4", bmi: 24.1 }
   ];
 
   const chartData = validData.length > 1 ? validData : fallbackProgress;
-  const numbers = chartData.map((entry) => Number(entry.bmi));
-  
+  const numbers = chartData.map(entry => Number(entry.bmi));
   const min = Math.min(...numbers) - 0.5;
   const max = Math.max(...numbers) + 0.5;
-  
+
   const points = numbers.map((value, index) => {
     const x = 8 + (index * 84) / Math.max(numbers.length - 1, 1);
     const y = 88 - ((value - min) / (max - min || 1)) * 72;
@@ -60,17 +88,16 @@ export default function Dashboard() {
     : "--";
 
   const totalExercises = workouts.length;
-  const completedSets = workouts.reduce((total, workout) => 
-    total + (workout.completedSets || 0), 0
-  );
+  const completedSets = workouts.reduce((sum, w) => sum + (w.completedSets || 0), 0);
+  const totalSets = workouts.reduce((sum, w) => sum + (w.sets || 0), 0);
+  const completionRate = totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0;
+  const currentStreak = calculateStreak(workouts);
 
-  const totalSets = workouts.reduce((total, workout) => 
-    total + (workout.sets || 0), 0
-  );
-
-  const completionRate = totalSets > 0 
-    ? Math.round((completedSets / totalSets) * 100) 
-    : 0;
+  const shareProgress = () => {
+    const text = `FitTrack Progress: ${currentStreak} day streak | BMI: ${latestBmi} | ${totalExercises} exercises tracked`;
+    navigator.clipboard.writeText(text);
+    alert("Progress copied to clipboard");
+  };
 
   return (
     <section className="dashboard feature-panel">
@@ -83,26 +110,10 @@ export default function Dashboard() {
       </div>
 
       <div className="stats-grid">
-        <StatCard 
-          label="Current BMI" 
-          value={latestBmi} 
-          detail="Latest recorded" 
-        />
-        <StatCard 
-          label="Exercises" 
-          value={totalExercises} 
-          detail="In current workout" 
-        />
-        <StatCard 
-          label="Sets Completed" 
-          value={completedSets} 
-          detail="Total this session" 
-        />
-        <StatCard 
-          label="Completion Rate" 
-          value={`${completionRate}%`} 
-          detail="Sets finished" 
-        />
+        <StatCard label="Current Streak" value={currentStreak + " days"} detail="Keep the momentum" />
+        <StatCard label="Current BMI" value={latestBmi} detail="Latest recorded" />
+        <StatCard label="Exercises" value={totalExercises} detail="In current workout" />
+        <StatCard label="Completion Rate" value={completionRate + "%"} detail="Sets finished" />
       </div>
 
       <div className="dashboard-chart-card">
@@ -113,12 +124,9 @@ export default function Dashboard() {
         <ProgressChart data={progressData} />
       </div>
 
-      {workouts.length > 0 && (
-        <div className="recent-workout">
-          <h3>Current Workout Summary</h3>
-          <p>You have {workouts.length} exercises in your active workout.</p>
-        </div>
-      )}
+      <button className="primary-button share-btn" onClick={shareProgress}>
+        Share My Progress
+      </button>
     </section>
   );
 }

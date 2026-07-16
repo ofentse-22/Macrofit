@@ -1096,3 +1096,66 @@ body {
   color: #94a3b8;
   font-size: 0.98rem;
 }
+/* ==================== BODY COMPOSITION ==================== */
+
+.body-composition-card {
+  background: #06122b;
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  border-radius: 16px;
+  padding: 28px;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.body-composition-card h2 {
+  color: #bfdbfe;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.metric-item {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(96, 165, 250, 0.15);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.metric-item span {
+  color: #94a3b8;
+  font-size: 1rem;
+}
+
+.metric-item strong {
+  color: #bfdbfe;
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.status {
+  font-size: 0.85rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.status.High { background: #f59e0b; color: #000; }
+.status.Healthy { background: #4ade80; color: #000; }
+.status.Perfect { background: #22d3ee; color: #000; }
+.status.Low { background: #60a5fa; color: #000; }
+
+.body-metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+@media (max-width: 600px) {
+  .body-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+}

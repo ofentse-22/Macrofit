@@ -1,19 +1,24 @@
 import { useState } from 'react';
-import BMICalculator from './components/BMICalculator';
-import BodyFatCalculator from './components/BodyFatCalculator';
-import WorkoutTracker from './components/WorkoutTracker';
 import Dashboard from './components/Dashboard';
-import AuthPanel from './components/AuthPanel';
+import WorkoutTracker from './components/WorkoutTracker';
 import WorkoutTemplates from './components/WorkoutTemplates';
 import ExerciseLibrary from './components/ExerciseLibrary';
+import BodyComposition from './components/BodyComposition';
+import AuthPanel from './components/AuthPanel';
 import DataExport from './components/DataExport';
 import './App.css';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
+  
   const tabs = [
-    ['dashboard', 'Dashboard'], ['workout', 'Workout'], ['templates', 'Templates'],
-    ['library', 'Exercise library'], ['bmi', 'BMI'], ['bodyfat', 'Body fat'], ['account', 'Account'], ['export', 'Export'],
+    ['dashboard', 'Dashboard'],
+    ['workout', 'Workout'],
+    ['templates', 'Templates'],
+    ['library', 'Exercise library'],
+    ['bodycomp', 'Body Composition'],
+    ['account', 'Account'],
+    ['export', 'Export'],
   ];
 
   return (
@@ -24,16 +29,24 @@ function App() {
       </header>
 
       <nav className="app-nav">
-        {tabs.map(([id, label]) => <button key={id} className={activeTab === id ? 'active' : ''} onClick={() => setActiveTab(id)}>{label}</button>)}
+        {tabs.map(([id, label]) => (
+          <button 
+            key={id} 
+            className={activeTab === id ? 'active' : ''} 
+            onClick={() => setActiveTab(id)}
+          >
+            {label}
+          </button>
+        ))}
       </nav>
 
       <main className="app-main">
         {activeTab === 'dashboard' && <Dashboard />}
-        {activeTab === 'bmi' && <BMICalculator />}
-        {activeTab === 'bodyfat' && <BodyFatCalculator />}
         {activeTab === 'workout' && <WorkoutTracker />}
         {activeTab === 'templates' && <WorkoutTemplates />}
         {activeTab === 'library' && <ExerciseLibrary />}
+        {activeTab === 'bodycomp' && <BodyComposition />}
+        
         {activeTab === 'account' && <AuthPanel />}
         {activeTab === 'export' && <DataExport />}
       </main>

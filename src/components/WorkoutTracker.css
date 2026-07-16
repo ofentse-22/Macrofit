@@ -155,3 +155,93 @@ button:disabled {
     display: flex;
     flex-direction: column;
 }
+.workout-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.workout-header h3 {
+  margin: 0;
+}
+.workout-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+}
+
+.clear-all-btn {
+  padding: 8px 16px !important;
+  font-size: 0.9rem;
+}
+.exercise-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;          
+}
+
+.workout-image {
+  width: 120px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 10px;
+  flex-shrink: 0;            
+  border: 2px solid #334155;
+}
+
+.exercise-info {
+  flex: 1;                   
+  min-width: 200px;
+}
+
+.exercise-info h4 {
+  margin: 0 0 8px 0;
+  color: #bfdbfe;
+  font-size: 1.1rem;
+}
+
+.exercise-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.exercise-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-left: auto;         
+  min-width: 90px;
+}
+
+.btn-edit, .btn-delete {
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+
+@media (max-width: 680px) {
+  .exercise-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .exercise-actions {
+    flex-direction: row;
+    margin-left: 0;
+    margin-top: 12px;
+    justify-content: flex-end;
+  }
+  
+  .workout-image {
+    width: 100%;
+    height: 160px;
+  }
+}

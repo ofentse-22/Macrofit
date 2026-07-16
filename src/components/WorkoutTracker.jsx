@@ -6,7 +6,6 @@ import RestTimer from "./RestTimer";
 const loadSavedExercises = () => {
   const saved = localStorage.getItem("workouts");
   if (!saved) return [];
-
   try {
     return JSON.parse(saved);
   } catch {
@@ -49,12 +48,10 @@ export default function WorkoutTracker() {
       image: selectedExercise?.image || "",
       instructions: selectedExercise?.instructions || "",
       category: selectedExercise?.category || "",
-
       sets: parseInt(sets),
       reps: parseInt(reps),
       weight: weight ? parseFloat(weight) : 0,
       restTime: parseInt(restTime),
-
       completedSets: 0,
       createdAt: new Date().toISOString(),
     };
@@ -94,7 +91,9 @@ export default function WorkoutTracker() {
   };
 
   const deleteExercise = (id) => {
-    setExercises((prev) => prev.filter((ex) => ex.id !== id));
+    if (window.confirm("Delete this exercise?")) {
+      setExercises((prev) => prev.filter((ex) => ex.id !== id));
+    }
   };
 
   const editExercise = (exercise) => {
@@ -129,6 +128,13 @@ export default function WorkoutTracker() {
     return exercise.sets > 0 ? (exercise.completedSets / exercise.sets) * 100 : 0;
   };
 
+  const clearAllExercises = () => {
+    if (window.confirm("Clear entire workout? This cannot be undone.")) {
+      setExercises([]);
+      localStorage.removeItem("workouts");
+    }
+  };
+
   return (
     <div className="workout-container">
       <div className="workout-card">
@@ -140,13 +146,7 @@ export default function WorkoutTracker() {
           <div className="form-grid">
             <div className="input-wrapper">
               <label>Category</label>
-              <select
-                value={category}
-                onChange={(e) => {
-                  setCategory(e.target.value);
-                  setExerciseName("");
-                }}
-              >
+              <select value={category} onChange={(e) => { setCategory(e.target.value); setExerciseName(""); }}>
                 <option value="">Select Category</option>
                 <option value="Chest">Chest</option>
                 <option value="Back">Back</option>
@@ -160,149 +160,85 @@ export default function WorkoutTracker() {
 
             <div className="input-wrapper">
               <label>Exercise</label>
-              <select
-                value={exerciseName}
-                onChange={(e) => setExerciseName(e.target.value)}
-                disabled={!category}
-              >
+              <select value={exerciseName} onChange={(e) => setExerciseName(e.target.value)} disabled={!category}>
                 <option value="">Select Exercise</option>
                 {filteredExercises.map((ex) => (
-                  <option key={ex.name} value={ex.name}>
-                    {ex.name}
-                  </option>
+                  <option key={ex.name} value={ex.name}>{ex.name}</option>
                 ))}
               </select>
             </div>
 
             <div className="input-wrapper">
               <label>Sets</label>
-              <input
-                type="number"
-                placeholder="Number of sets"
-                value={sets}
-                onChange={(e) => setSets(e.target.value)}
-                min="1"
-              />
+              <input type="number" placeholder="Number of sets" value={sets} onChange={(e) => setSets(e.target.value)} min="1" />
             </div>
 
             <div className="input-wrapper">
               <label>Reps per Set</label>
-              <input
-                type="number"
-                placeholder="Reps per set"
-                value={reps}
-                onChange={(e) => setReps(e.target.value)}
-                min="1"
-              />
+              <input type="number" placeholder="Reps per set" value={reps} onChange={(e) => setReps(e.target.value)} min="1" />
             </div>
 
             <div className="input-wrapper">
               <label>Weight (kg)</label>
-              <input
-                type="number"
-                placeholder="Weight in kg"
-                value={weight}
-                onChange={(e) => setWeight(e.target.value)}
-                min="0"
-                step="0.5"
-              />
+              <input type="number" placeholder="Weight in kg" value={weight} onChange={(e) => setWeight(e.target.value)} min="0" step="0.5" />
             </div>
 
             <div className="input-wrapper">
               <label>Rest Time (seconds)</label>
-              <input
-                type="number"
-                placeholder="Rest between sets"
-                value={restTime}
-                onChange={(e) => setRestTime(e.target.value)}
-                min="10"
-                step="5"
-              />
+              <input type="number" placeholder="Rest between sets" value={restTime} onChange={(e) => setRestTime(e.target.value)} min="10" step="5" />
             </div>
           </div>
 
           <div className="form-actions">
             {editingId ? (
               <>
-                <button className="btn-update" onClick={updateExercise}>
-                  Update Exercise
-                </button>
-                <button
-                  className="btn-cancel"
-                  onClick={() => {
-                    clearForm();
-                    setEditingId(null);
-                  }}
-                >
-                  Cancel
-                </button>
+                <button className="btn-update" onClick={updateExercise}>Update Exercise</button>
+                <button className="btn-cancel" onClick={() => { clearForm(); setEditingId(null); }}>Cancel</button>
               </>
             ) : (
-              <button className="btn-add" onClick={addExercise}>
-                Add to Workout
-              </button>
+              <button className="btn-add" onClick={addExercise}>Add to Workout</button>
             )}
-            <button 
-  className="btn-delete"
-  onClick={() => {
-    if (window.confirm("Clear entire workout?")) {
-      localStorage.removeItem("workouts");
-      window.location.reload();
-    }
-  }}
->
-  Clear All Exercises
-</button>
           </div>
         </div>
 
         <div className="exercises-list">
-          <h3>Your Current Workout</h3>
+          <div className="workout-header">
+            <h3>Your Current Workout ({exercises.length})</h3>
+            {exercises.length > 0 && (
+              <button className="btn-delete clear-all-btn" onClick={clearAllExercises}>
+                Clear All
+              </button>
+            )}
+          </div>
 
           {exercises.length === 0 ? (
-            <p className="empty-message">
-              No exercises added yet. Start building your workout!
-            </p>
+            <p className="empty-message">No exercises added yet. Start building your workout or load a template!</p>
           ) : (
             exercises.map((exercise) => (
               <div key={exercise.id} className="exercise-item">
                 <div className="exercise-header">
                   {exercise.image && (
-                    <img
-                      src={exercise.image}
-                      alt={exercise.name}
-                      className="workout-image"
-                      onError={(e) => { e.target.style.display = "none"; }}
-                    />
+                    <img src={exercise.image} alt={exercise.name} className="workout-image" onError={(e) => e.target.style.display = "none"} />
                   )}
 
                   <div className="exercise-info">
                     <h4>{exercise.name}</h4>
                     <div className="exercise-stats">
-                      <span>
-                        {exercise.sets} sets × {exercise.reps} reps
-                      </span>
+                      <span>{exercise.sets} sets × {exercise.reps} reps</span>
                       {exercise.weight > 0 && <span>{exercise.weight} kg</span>}
                       <span className="rest-badge">Rest: {exercise.restTime}s</span>
                     </div>
                   </div>
 
                   <div className="exercise-actions">
-                    <button className="btn-edit" onClick={() => editExercise(exercise)}>
-                      Edit
-                    </button>
-                    <button className="btn-delete" onClick={() => deleteExercise(exercise.id)}>
-                      Delete
-                    </button>
+                    <button className="btn-edit" onClick={() => editExercise(exercise)}>Edit</button>
+                    <button className="btn-delete" onClick={() => deleteExercise(exercise.id)}>Delete</button>
                   </div>
                 </div>
 
                 <div className="exercise-progress">
                   <div className="progress-bar">
-                    <div
-                      className="progress-fill"
-                      style={{ width: `${getProgress(exercise)}%` }}
-                    />
+                    <div className="progress-fill" style={{ width: `${getProgress(exercise)}%` }} />
                   </div>
                   <span className="progress-text">
                     {exercise.completedSets} / {exercise.sets} sets completed
@@ -310,26 +246,14 @@ export default function WorkoutTracker() {
                 </div>
 
                 {exercise.completedSets > 0 && exercise.completedSets < exercise.sets && (
-                  <RestTimer
-                    restTime={exercise.restTime}
-                    isActive={true}
-                    onComplete={() => {}}
-                  />
+                  <RestTimer restTime={exercise.restTime} isActive={true} onComplete={() => {}} />
                 )}
 
                 <div className="exercise-controls">
-                  <button
-                    className="btn-complete"
-                    onClick={() => completeSet(exercise.id)}
-                    disabled={exercise.completedSets >= exercise.sets}
-                  >
+                  <button className="btn-complete" onClick={() => completeSet(exercise.id)} disabled={exercise.completedSets >= exercise.sets}>
                     Complete Set
                   </button>
-                  <button
-                    className="btn-reset"
-                    onClick={() => resetExercise(exercise.id)}
-                    disabled={exercise.completedSets === 0}
-                  >
+                  <button className="btn-reset" onClick={() => resetExercise(exercise.id)} disabled={exercise.completedSets === 0}>
                     Reset Progress
                   </button>
                 </div>
