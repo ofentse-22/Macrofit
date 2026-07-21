@@ -82,19 +82,39 @@ const templates = [
   }
 ];
 
+const getStoredCustomTemplates = () => {
+  try {
+    return JSON.parse(localStorage.getItem("customTemplates") || "[]");
+  } catch {
+    return [];
+  }
+};
+
+const createExerciseId = () => {
+  return crypto.randomUUID?.() || Math.random().toString(36).slice(2) + Date.now();
+};
+
 export default function WorkoutTemplates() {
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [loadedTemplates, setLoadedTemplates] = useState([]);
+  const [customTemplates, setCustomTemplates] = useState(getStoredCustomTemplates);
+  const [form, setForm] = useState({
+    name: "",
+    level: "Intermediate",
+    schedule: "",
+    focus: "",
+    exercises: []
+  });
 
   const loadTemplate = (template) => {
     const currentWorkouts = JSON.parse(localStorage.getItem("workouts") || "[]");
 
-    const newExercises = template.exercises.map(name => {
-      const exerciseData = exerciseLibrary.find(ex => ex.name === name);
-      
+    const newExercises = template.exercises.map((name) => {
+      const exerciseData = exerciseLibrary.find((ex) => ex.name === name);
+
       return {
-        id: crypto.randomUUID?.() || Math.random().toString(36).slice(2) + Date.now(),
-        name: name,
+        id: createExerciseId(),
+        name,
         image: exerciseData?.image || "",
         instructions: exerciseData?.instructions || "",
         category: exerciseData?.category || "",
@@ -113,8 +133,52 @@ export default function WorkoutTemplates() {
     alert(`✅ Template "${template.name}" loaded!\n\n${newExercises.length} exercises added to your workout.`);
 
     setSelectedTemplate(template);
-    setLoadedTemplates(prev => [...prev, template.id]);
+    setLoadedTemplates((prev) => [...prev, template.id]);
   };
+
+  const handleExerciseToggle = (name) => {
+    setForm((prev) => ({
+      ...prev,
+      exercises: prev.exercises.includes(name)
+        ? prev.exercises.filter((exercise) => exercise !== name)
+        : [...prev.exercises, name]
+    }));
+  };
+
+  const saveCustomTemplate = (event) => {
+    event.preventDefault();
+
+    if (!form.name.trim() || form.exercises.length === 0) {
+      alert("Please give your template a name and select at least one exercise.");
+      return;
+    }
+
+    const newTemplate = {
+      id: Date.now(),
+      name: form.name.trim(),
+      level: form.level || "Custom",
+      schedule: form.schedule.trim() || "Your own schedule",
+      focus: form.focus.trim() || "Personalized training plan",
+      exercises: form.exercises,
+      isCustom: true
+    };
+
+    const updatedTemplates = [newTemplate, ...customTemplates];
+    setCustomTemplates(updatedTemplates);
+    localStorage.setItem("customTemplates", JSON.stringify(updatedTemplates));
+
+    setForm({
+      name: "",
+      level: "Intermediate",
+      schedule: "",
+      focus: "",
+      exercises: []
+    });
+
+    alert(`✅ Custom template "${newTemplate.name}" saved!`);
+  };
+
+  const allTemplates = [...customTemplates, ...templates];
 
   return (
     <section className="feature-panel templates-page">
@@ -129,14 +193,77 @@ export default function WorkoutTemplates() {
         Choose a template to instantly add recommended exercises to your current workout.
       </p>
 
+      <form className="custom-template-form" onSubmit={saveCustomTemplate}>
+        <div className="custom-template-header">
+          <h3>Create a custom template</h3>
+          <p>Build your own plan and load it directly into your workout page.</p>
+        </div>
+
+        <div className="custom-template-fields">
+          <label>
+            <span>Template name</span>
+            <input
+              value={form.name}
+              onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
+              placeholder="e.g. Upper Body Burn"
+            />
+          </label>
+
+          <label>
+            <span>Level</span>
+            <input
+              value={form.level}
+              onChange={(event) => setForm((prev) => ({ ...prev, level: event.target.value }))}
+              placeholder="Beginner / Intermediate"
+            />
+          </label>
+
+          <label>
+            <span>Schedule</span>
+            <input
+              value={form.schedule}
+              onChange={(event) => setForm((prev) => ({ ...prev, schedule: event.target.value }))}
+              placeholder="3 days per week"
+            />
+          </label>
+
+          <label>
+            <span>Focus</span>
+            <input
+              value={form.focus}
+              onChange={(event) => setForm((prev) => ({ ...prev, focus: event.target.value }))}
+              placeholder="Chest, core and endurance"
+            />
+          </label>
+        </div>
+
+        <div className="custom-template-exercises">
+          <span>Select exercises</span>
+          <div className="exercise-chip-list">
+            {exerciseLibrary.map((exercise) => (
+              <button
+                key={exercise.name}
+                type="button"
+                className={`exercise-chip ${form.exercises.includes(exercise.name) ? "active" : ""}`}
+                onClick={() => handleExerciseToggle(exercise.name)}
+              >
+                {exercise.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <button className="primary-button" type="submit">Save Custom Template</button>
+      </form>
+
       <div className="template-grid">
-        {templates.map((template) => (
-          <div 
-            key={template.id} 
+        {allTemplates.map((template) => (
+          <div
+            key={template.id}
             className={`template-card ${loadedTemplates.includes(template.id) ? "loaded" : ""}`}
           >
-            <div className="template-level">{template.level}</div>
-            
+            <div className="template-level">{template.isCustom ? "Custom" : template.level}</div>
+
             <h3>{template.name}</h3>
             <p className="schedule">{template.schedule}</p>
             <p className="focus">{template.focus}</p>
@@ -153,7 +280,7 @@ export default function WorkoutTemplates() {
               </ul>
             </div>
 
-            <button 
+            <button
               className="primary-button"
               onClick={() => loadTemplate(template)}
               disabled={loadedTemplates.includes(template.id)}
@@ -167,7 +294,7 @@ export default function WorkoutTemplates() {
       {selectedTemplate && (
         <div className="template-success">
           <p>
-            <strong>{selectedTemplate.name}</strong> has been added to your workout! 
+            <strong>{selectedTemplate.name}</strong> has been added to your workout!
             Go to the <strong>Workout</strong> tab to begin training.
           </p>
         </div>

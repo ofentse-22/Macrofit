@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Dashboard from './components/Dashboard';
 import WorkoutTracker from './components/WorkoutTracker';
+import WorkoutHistory from './components/WorkoutHistory';
 import WorkoutTemplates from './components/WorkoutTemplates';
 import ExerciseLibrary from './components/ExerciseLibrary';
 import BodyComposition from './components/BodyComposition';
@@ -14,6 +15,7 @@ function App() {
   const tabs = [
     ['dashboard', 'Dashboard'],
     ['workout', 'Workout'],
+    ['history', 'History'],
     ['templates', 'Templates'],
     ['library', 'Exercise library'],
     ['bodycomp', 'Body Composition'],
@@ -24,7 +26,7 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>FitTrack</h1>
+        <h1>FitLab</h1>
         <p>Your personal fitness companion</p>
       </header>
 
@@ -43,6 +45,7 @@ function App() {
       <main className="app-main">
         {activeTab === 'dashboard' && <Dashboard />}
         {activeTab === 'workout' && <WorkoutTracker />}
+        {activeTab === 'history' && <WorkoutHistory />}
         {activeTab === 'templates' && <WorkoutTemplates />}
         {activeTab === 'library' && <ExerciseLibrary />}
         {activeTab === 'bodycomp' && <BodyComposition />}

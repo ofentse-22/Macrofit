@@ -25,17 +25,12 @@ export default function BodyFatCalculator() {
     // BMI
     const bmi = weightKg / ((heightCm / 100) ** 2);
 
-    // Body Fat % (US Navy Method - more accurate)
-    let bodyFat = 0;
-    if (gender === "male") {
-      bodyFat = 86.010 * Math.log10(waistCm - 0.0001) - 70.041 * Math.log10(heightCm) + 36.76;
-    } else {
-      bodyFat = 163.205 * Math.log10(waistCm + 0.0001) - 97.684 * Math.log10(heightCm) - 78.387;
-    }
+    const rawBodyFat = gender === "male"
+      ? 86.010 * Math.log10(waistCm - 0.0001) - 70.041 * Math.log10(heightCm) + 36.76
+      : 163.205 * Math.log10(waistCm + 0.0001) - 97.684 * Math.log10(heightCm) - 78.387;
 
-    bodyFat = Math.max(5, Math.min(50, bodyFat.toFixed(1)));
+    const bodyFat = Number(Math.max(5, Math.min(50, rawBodyFat.toFixed(1))));
 
-    // Other estimates
     const fatMass = (bodyFat / 100) * weightKg;
     const leanMass = weightKg - fatMass;
     const waterPercent = gender === "male" ? 60 : 55;
@@ -50,7 +45,7 @@ export default function BodyFatCalculator() {
       waterPercent: waterPercent,
       waterKg: waterKg.toFixed(1),
       visceralFat: Math.max(1, visceralFat),
-      musclePercent: (100 - bodyFat - 15).toFixed(1), // rough estimate
+      musclePercent: (100 - bodyFat - 15).toFixed(1), 
     };
 
     setResults(newResults);

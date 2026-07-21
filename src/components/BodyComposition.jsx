@@ -254,21 +254,21 @@ export default function BodyComposition() {
           <div className="result-container">
             <h3>Your Body Composition Results</h3>
             <div className="body-metrics-grid">
-        <Metric label="BMI" value={results.bmi} />
-        <Metric label="BMI Status" value={results.bmiCategory} />
-        <Metric label="Body Fat" value={`${results.bodyFat}%`} />
-  <     Metric label="Body Fat Status" value={results.bodyFatCategory} />
-        <Metric label="Fat Mass" value={`${results.fatMass} kg`} />
-        <Metric label="Lean Mass" value={`${results.leanMass} kg`} />
-        <Metric label="Muscle %" value={`${results.musclePercent}%`} />
-        <Metric label="Water %" value={`${results.waterPercent}%`} />
-        <Metric label="BMR" value={`${results.metabolism} kcal/day`} />
-        <Metric label="Maintenance" value={`${results.maintenance} kcal/day`} />
-        <Metric label="Lose 0.5kg/week" value={`${results.lose05} kcal/day`} />
-        <Metric label="Lose 1kg/week" value={`${results.lose1} kcal/day`} />
-        <Metric label="Gain 0.25kg/week" value={`${results.gain025} kcal/day`} />
-        <Metric label="Gain 0.5kg/week" value={`${results.gain05} kcal/day`} />
-</div>
+              <Metric label="BMI" value={results.bmi} />
+              <Metric label="BMI Status" value={results.bmiCategory} />
+              <Metric label="Body Fat" value={`${results.bodyFat}%`} />
+              <Metric label="Body Fat Status" value={results.bodyFatCategory} />
+              <Metric label="BMR" value={`${results.metabolism} kcal/day`} />
+              <Metric label="Maintenance" value={`${results.maintenance} kcal/day`} />
+              <Metric label="Lose 0.5kg/week" value={`${results.lose05} kcal/day`} />
+              <Metric label="Lose 1kg/week" value={`${results.lose1} kcal/day`} />
+              <Metric label="Gain 0.25kg/week" value={`${results.gain025} kcal/day`} />
+              <Metric label="Gain 0.5kg/week" value={`${results.gain05} kcal/day`} />
+            </div>
+
+            <p className="estimate-note">
+              These values are estimates based on common formulas and are not a real body composition scan.
+            </p>
 
             <button className="primary-button" onClick={saveResults} style={{ marginTop: "20px" }}>
               Save Results

@@ -42,10 +42,10 @@ export default function DataExport() {
       <p>Download your complete workout history or print your progress.</p>
       
       <div className="export-buttons">
-        <button className="primary-button" onClick={exportWorkouts}>
+        <button className="primary-button" onClick={exportWorkouts} type="button">
           Export Workout History (CSV)
         </button>
-        <button className="secondary-button" onClick={() => window.print()}>
+        <button className="primary-button" onClick={() => window.print()} type="button">
           Print / Save as PDF
         </button>
       </div>

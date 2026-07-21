@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "./WorkoutTracker.css";
 import exerciseLibrary from "../data/exercises";
 import RestTimer from "./RestTimer";
@@ -21,6 +21,7 @@ const createExerciseId = () => {
 export default function WorkoutTracker() {
   const [exercises, setExercises] = useState(loadSavedExercises);
   const [category, setCategory] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [exerciseName, setExerciseName] = useState("");
   const [sets, setSets] = useState("");
   const [reps, setReps] = useState("");
@@ -33,21 +34,33 @@ export default function WorkoutTracker() {
   }, [exercises]);
 
   const filteredExercises = useMemo(() => {
-    if (!category) return [];
-    return exerciseLibrary.filter((ex) => ex.category === category);
-  }, [category]);
+    const normalizedQuery = searchTerm.trim().toLowerCase();
+
+    return exerciseLibrary.filter((ex) => {
+      const matchesCategory = !category || ex.category.trim().toLowerCase() === category.trim().toLowerCase();
+      const matchesSearch =
+        normalizedQuery.length === 0 ||
+        ex.name.toLowerCase().includes(normalizedQuery) ||
+        ex.category.toLowerCase().includes(normalizedQuery);
+
+      return matchesCategory && matchesSearch;
+    });
+  }, [category, searchTerm]);
 
   const addExercise = () => {
-    if (!exerciseName || !sets || !reps) return;
+    if (!exerciseName || !sets || !reps) {
+      alert("Please select a Category, Exercise, and fill Sets & Reps");
+      return;
+    }
 
-    const selectedExercise = exerciseLibrary.find((ex) => ex.name === exerciseName);
+    const selected = exerciseLibrary.find((ex) => ex.name === exerciseName);
 
     const newExercise = {
       id: createExerciseId(),
       name: exerciseName,
-      image: selectedExercise?.image || "",
-      instructions: selectedExercise?.instructions || "",
-      category: selectedExercise?.category || "",
+      image: selected?.image || "",
+      instructions: selected?.instructions || "",
+      category: selected?.category || "",
       sets: parseInt(sets),
       reps: parseInt(reps),
       weight: weight ? parseFloat(weight) : 0,
@@ -88,6 +101,7 @@ export default function WorkoutTracker() {
     setReps("");
     setWeight("");
     setRestTime("60");
+    setSearchTerm("");
   };
 
   const deleteExercise = (id) => {
@@ -101,8 +115,8 @@ export default function WorkoutTracker() {
     setExerciseName(exercise.name);
     setSets(exercise.sets.toString());
     setReps(exercise.reps.toString());
-    setWeight(exercise.weight.toString());
-    setRestTime(exercise.restTime.toString());
+    setWeight(exercise.weight?.toString() || "");
+    setRestTime(exercise.restTime?.toString() || "60");
     setCategory(exercise.category);
   };
 
@@ -118,9 +132,7 @@ export default function WorkoutTracker() {
 
   const resetExercise = (id) => {
     setExercises((prev) =>
-      prev.map((ex) =>
-        ex.id === id ? { ...ex, completedSets: 0 } : ex
-      )
+      prev.map((ex) => (ex.id === id ? { ...ex, completedSets: 0 } : ex))
     );
   };
 
@@ -135,6 +147,31 @@ export default function WorkoutTracker() {
     }
   };
 
+  const saveWorkoutToHistory = () => {
+    if (exercises.length === 0) {
+      alert("Add a few exercises before saving your workout.");
+      return;
+    }
+
+    const history = JSON.parse(localStorage.getItem("workoutHistory") || "[]");
+    const totalSets = exercises.reduce((sum, exercise) => sum + exercise.sets, 0);
+    const completedSets = exercises.reduce((sum, exercise) => sum + exercise.completedSets, 0);
+
+    const newEntry = {
+      id: createExerciseId(),
+      title: `Workout • ${new Date().toLocaleDateString()}`,
+      completedAt: new Date().toISOString(),
+      exerciseCount: exercises.length,
+      totalSets,
+      completedSets,
+      completedRatio: totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0,
+      exercises: exercises.map(({ id, ...rest }) => rest),
+    };
+
+    localStorage.setItem("workoutHistory", JSON.stringify([newEntry, ...history]));
+    alert("Workout saved to history.");
+  };
+
   return (
     <div className="workout-container">
       <div className="workout-card">
@@ -146,7 +183,14 @@ export default function WorkoutTracker() {
           <div className="form-grid">
             <div className="input-wrapper">
               <label>Category</label>
-              <select value={category} onChange={(e) => { setCategory(e.target.value); setExerciseName(""); }}>
+              <select
+                value={category}
+                onChange={(e) => {
+                  setCategory(e.target.value);
+                  setExerciseName("");
+                  setSearchTerm("");
+                }}
+              >
                 <option value="">Select Category</option>
                 <option value="Chest">Chest</option>
                 <option value="Back">Back</option>
@@ -159,11 +203,28 @@ export default function WorkoutTracker() {
             </div>
 
             <div className="input-wrapper">
+              <label>Search exercises</label>
+              <input
+                type="text"
+                placeholder="Search by name or focus"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                disabled={!category}
+              />
+            </div>
+
+            <div className="input-wrapper">
               <label>Exercise</label>
-              <select value={exerciseName} onChange={(e) => setExerciseName(e.target.value)} disabled={!category}>
-                <option value="">Select Exercise</option>
+              <select
+                value={exerciseName}
+                onChange={(e) => setExerciseName(e.target.value)}
+                disabled={!category}
+              >
+                <option value="">{filteredExercises.length > 0 ? "Select Exercise" : "No matches found"}</option>
                 {filteredExercises.map((ex) => (
-                  <option key={ex.name} value={ex.name}>{ex.name}</option>
+                  <option key={ex.name} value={ex.name}>
+                    {ex.name}
+                  </option>
                 ))}
               </select>
             </div>
@@ -205,9 +266,14 @@ export default function WorkoutTracker() {
           <div className="workout-header">
             <h3>Your Current Workout ({exercises.length})</h3>
             {exercises.length > 0 && (
-              <button className="btn-delete clear-all-btn" onClick={clearAllExercises}>
-                Clear All
-              </button>
+              <div className="workout-header-actions">
+                <button className="btn-save" onClick={saveWorkoutToHistory} disabled={exercises.length === 0}>
+                  Save Workout
+                </button>
+                <button className="btn-delete clear-all-btn" onClick={clearAllExercises}>
+                  Clear All
+                </button>
+              </div>
             )}
           </div>
 
@@ -218,9 +284,8 @@ export default function WorkoutTracker() {
               <div key={exercise.id} className="exercise-item">
                 <div className="exercise-header">
                   {exercise.image && (
-                    <img src={exercise.image} alt={exercise.name} className="workout-image" onError={(e) => e.target.style.display = "none"} />
+                    <img src={exercise.image} alt={exercise.name} className="workout-image" onError={(e) => (e.target.style.display = "none")} />
                   )}
-
                   <div className="exercise-info">
                     <h4>{exercise.name}</h4>
                     <div className="exercise-stats">
