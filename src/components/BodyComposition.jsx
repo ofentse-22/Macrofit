@@ -258,12 +258,18 @@ export default function BodyComposition() {
               <Metric label="BMI Status" value={results.bmiCategory} />
               <Metric label="Body Fat" value={`${results.bodyFat}%`} />
               <Metric label="Body Fat Status" value={results.bodyFatCategory} />
-              <Metric label="BMR" value={`${results.metabolism} kcal/day`} />
-              <Metric label="Maintenance" value={`${results.maintenance} kcal/day`} />
-              <Metric label="Lose 0.5kg/week" value={`${results.lose05} kcal/day`} />
-              <Metric label="Lose 1kg/week" value={`${results.lose1} kcal/day`} />
-              <Metric label="Gain 0.25kg/week" value={`${results.gain025} kcal/day`} />
-              <Metric label="Gain 0.5kg/week" value={`${results.gain05} kcal/day`} />
+            </div>
+
+            <div className="calorie-target-section">
+              <h4>Daily Calorie Targets</h4>
+              <div className="calorie-target-grid">
+                <CalorieTargetCard label="BMR" value={`${results.metabolism} kcal/day`} />
+                <CalorieTargetCard label="Maintenance" value={`${results.maintenance} kcal/day`} />
+                <CalorieTargetCard label="Lose 0.5kg/week" value={`${results.lose05} kcal/day`} />
+                <CalorieTargetCard label="Lose 1kg/week" value={`${results.lose1} kcal/day`} />
+                <CalorieTargetCard label="Gain 0.25kg/week" value={`${results.gain025} kcal/day`} />
+                <CalorieTargetCard label="Gain 0.5kg/week" value={`${results.gain05} kcal/day`} />
+              </div>
             </div>
 
             <p className="estimate-note">
@@ -283,6 +289,15 @@ export default function BodyComposition() {
 function Metric({ label, value }) {
   return (
     <div className="metric-item">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function CalorieTargetCard({ label, value }) {
+  return (
+    <div className="calorie-target-card">
       <span>{label}</span>
       <strong>{value}</strong>
     </div>

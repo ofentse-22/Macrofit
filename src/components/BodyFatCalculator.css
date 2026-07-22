@@ -3,8 +3,8 @@
 }
 
 .body-fat-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 24px;
   text-align: left;
@@ -17,8 +17,8 @@
 }
 
 .gender-toggle {
-  background: var(--muted);
-  border: 1px solid var(--border);
+  background: var(--button-muted-bg);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -30,7 +30,7 @@
   background: transparent;
   border: 0;
   border-radius: 6px;
-  color: var(--text);
+  color: var(--text-secondary);
   cursor: pointer;
   font: inherit;
   font-weight: 750;
@@ -38,9 +38,9 @@
 }
 
 .gender-toggle button.active {
-  background: var(--bg);
-  color: var(--text-h);
-  box-shadow: var(--shadow);
+  background: var(--accent-soft);
+  color: var(--text-primary);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.12);
 }
 
 .body-fat-result {
@@ -56,7 +56,7 @@
 
 .body-fat-range {
   align-items: center;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   display: flex;
   gap: 10px;
@@ -64,8 +64,8 @@
 }
 
 .body-fat-range.selected {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-bg);
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .range-color {
@@ -81,11 +81,11 @@
 }
 
 .body-fat-range strong {
-  color: var(--text-h);
+  color: var(--text-primary);
   font-size: 14px;
 }
 
 .body-fat-range span:last-child {
-  color: var(--text);
+  color: var(--text-secondary);
   font-size: 13px;
 }

@@ -3,16 +3,16 @@
 }
 
 .workout-card {
-  background: linear-gradient(145deg, rgba(6, 18, 43, 0.96), rgba(8, 26, 58, 0.94));
-  border: 1px solid rgba(125, 211, 252, 0.16);
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
   border-radius: 22px;
   padding: 24px;
   text-align: left;
-  box-shadow: 0 20px 45px rgba(2, 8, 23, 0.28);
+  box-shadow: 0 20px 45px var(--shadow-color);
 }
 
 .workout-card h2 {
-  color: #f8fafc;
+  color: var(--text-primary);
   margin-bottom: 8px;
 }
 
@@ -21,13 +21,13 @@
   gap: 18px;
   padding: 18px;
   border-radius: 18px;
-  background: rgba(2, 8, 23, 0.55);
-  border: 1px solid rgba(96, 165, 250, 0.16);
+  background: var(--card-bg-strong);
+  border: 1px solid var(--border-color);
 }
 
 .exercise-form h3,
 .exercises-list h3 {
-  color: #f8fafc;
+  color: var(--text-primary);
   margin: 0;
 }
 
@@ -71,9 +71,9 @@ button:disabled {
 .btn-cancel,
 .btn-reset,
 .btn-edit {
-  background: rgba(148, 163, 184, 0.16);
-  color: #e2e8f0;
-  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: var(--button-muted-bg);
+  color: var(--button-muted-text);
+  border: 1px solid var(--button-muted-border);
 }
 
 .btn-delete {
@@ -88,20 +88,20 @@ button:disabled {
 }
 
 .empty-message {
-  border: 1px dashed rgba(96, 165, 250, 0.24);
+  border: 1px dashed var(--border-color);
   border-radius: 14px;
   padding: 18px;
-  color: #cbd5e1;
-  background: rgba(2, 8, 23, 0.38);
+  color: var(--text-secondary);
+  background: var(--card-bg-strong);
 }
 
 .exercise-item {
-  border: 1px solid rgba(96, 165, 250, 0.16);
+  border: 1px solid var(--border-color);
   border-radius: 16px;
   display: grid;
   gap: 16px;
   padding: 16px;
-  background: rgba(2, 8, 23, 0.62);
+  background: var(--card-bg-strong);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
 }
 
@@ -113,7 +113,7 @@ button:disabled {
 }
 
 .exercise-info h4 {
-  color: #f8fafc;
+  color: var(--text-primary);
   margin: 0 0 8px;
 }
 
@@ -125,9 +125,9 @@ button:disabled {
 
 .exercise-stats span,
 .rest-badge {
-  background: rgba(148, 163, 184, 0.16);
+  background: var(--button-muted-bg);
   border-radius: 999px;
-  color: #cbd5e1;
+  color: var(--text-secondary);
   font-size: 13px;
   padding: 4px 9px;
 }
@@ -138,7 +138,7 @@ button:disabled {
 }
 
 .progress-bar {
-  background: rgba(148, 163, 184, 0.16);
+  background: var(--button-muted-bg);
   border-radius: 999px;
   height: 10px;
   overflow: hidden;
@@ -152,7 +152,7 @@ button:disabled {
 
 .progress-text {
   font-size: 14px;
-  color: #94a3b8;
+  color: var(--text-secondary);
 }
 
 .workout-header {
@@ -161,13 +161,13 @@ button:disabled {
   align-items: center;
   margin-bottom: 20px;
   padding-bottom: 10px;
-  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+  border-bottom: 1px solid var(--border-color);
   gap: 12px;
 }
 
 .workout-header h3 {
   margin: 0;
-  color: #f8fafc;
+  color: var(--text-primary);
 }
 
 .workout-header-actions {
@@ -206,8 +206,8 @@ button:disabled {
   object-fit: cover;
   border-radius: 12px;
   flex-shrink: 0;
-  border: 2px solid rgba(96, 165, 250, 0.24);
-  box-shadow: 0 10px 24px rgba(2, 8, 23, 0.22);
+  border: 2px solid var(--border-color);
+  box-shadow: 0 10px 24px var(--shadow-color);
 }
 
 .exercise-info {
