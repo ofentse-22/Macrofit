@@ -49,7 +49,7 @@ function App() {
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             type="button"
           >
-            {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
+            {theme === 'dark' ? 'Light mode' : 'Dark mode'}
           </button>
         </div>
       </header>

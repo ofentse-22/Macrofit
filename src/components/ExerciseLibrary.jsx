@@ -66,7 +66,6 @@ export default function ExerciseLibrary() {
 
       <div className="library-toolbar">
         <label className="search-bar">
-          <span>🔎</span>
           <input
             type="text"
             value={searchTerm}
@@ -97,7 +96,7 @@ export default function ExerciseLibrary() {
           <div className="favorites-list">
             {favoriteExercises.map((exercise) => (
               <button key={exercise.name} className="favorite-chip" onClick={() => toggleFavorite(exercise.name)}>
-                {exercise.name} ★
+                {exercise.name} · Saved
               </button>
             ))}
           </div>

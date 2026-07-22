@@ -120,15 +120,12 @@ export default function AuthPanel() {
 
           <div className="auth-highlights">
             <div className="auth-highlight">
-              <span>⚡</span>
               <p>Fast sign in</p>
             </div>
             <div className="auth-highlight">
-              <span>📈</span>
               <p>Track progress</p>
             </div>
             <div className="auth-highlight">
-              <span>🏋️</span>
               <p>Stay consistent</p>
             </div>
           </div>

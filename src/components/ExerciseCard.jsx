@@ -8,7 +8,7 @@ export default function ExerciseCard({ exercise, isFavorite, onToggleFavorite })
           onClick={() => onToggleFavorite(exercise.name)}
           type="button"
         >
-          {isFavorite ? "★" : "☆"}
+          {isFavorite ? "Saved" : "Save"}
         </button>
       </div>
       <p><strong>Category:</strong> {exercise.category}</p>
