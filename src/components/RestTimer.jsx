@@ -1,54 +1,40 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function RestTimer({ restTime = 60, isActive = false, onComplete }) {
   const [timeLeft, setTimeLeft] = useState(restTime);
-  const [isRunning, setIsRunning] = useState(false);
-  const intervalRef = useRef(null);
+  const [isPaused, setIsPaused] = useState(!isActive);
+  const onCompleteRef = useRef(onComplete);
 
   useEffect(() => {
-    setTimeLeft(restTime);
-    if (isRunning) {
-      pauseTimer();
-    }
-  }, [restTime]);
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
 
   useEffect(() => {
-    if (isActive && !isRunning && timeLeft > 0) {
-      startTimer();
-    } else if (!isActive && isRunning) {
-      pauseTimer();
-    }
-  }, [isActive]);
+    if (!isActive || isPaused || timeLeft <= 0) return undefined;
 
-  const startTimer = () => {
-    if (intervalRef.current) return;
-
-    setIsRunning(true);
-    intervalRef.current = setInterval(() => {
+    const interval = window.setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
-          setIsRunning(false);
-          onComplete?.();
+          window.clearInterval(interval);
+          onCompleteRef.current?.();
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
-  };
 
-  const pauseTimer = () => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-    setIsRunning(false);
-  };
+    return () => window.clearInterval(interval);
+  }, [isActive, isPaused, timeLeft]);
+
+  const isRunning = isActive && !isPaused && timeLeft > 0;
+
+  const startTimer = () => setIsPaused(false);
+
+  const pauseTimer = () => setIsPaused(true);
 
   const resetTimer = () => {
-    pauseTimer();
     setTimeLeft(restTime);
+    setIsPaused(true);
   };
 
   const formatTime = (seconds) => {

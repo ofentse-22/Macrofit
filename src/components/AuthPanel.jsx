@@ -1,181 +1,85 @@
-import { useState } from "react";
-
-function AuthIllustration() {
-  return (
-    <div className="auth-illustration" aria-hidden="true">
-      <div className="illustration-orb orb-one" />
-      <div className="illustration-orb orb-two" />
-      <svg viewBox="0 0 220 160" className="illustration-svg">
-        <rect x="32" y="48" width="156" height="84" rx="24" className="illustration-card" />
-        <path d="M72 96h18" className="illustration-line" />
-        <path d="M96 84l16 16 28-28" className="illustration-line success-line" />
-        <circle cx="154" cy="74" r="20" className="illustration-circle" />
-        <path d="M148 74h12M154 68v12" className="illustration-line" />
-        <path d="M58 76c8-22 20-32 36-32" className="illustration-arc" />
-      </svg>
-    </div>
-  );
-}
+import { useEffect, useState } from "react";
+import { supabase } from "../supabaseClient";
 
 export default function AuthPanel() {
   const [mode, setMode] = useState("login");
-  const [message, setMessage] = useState("");
-  const [email, setEmail] = useState(() => {
-    try {
-      const savedUser = localStorage.getItem("fitTrackUser");
-      return savedUser ? JSON.parse(savedUser).email : "";
-    } catch {
-      return "";
-    }
-  });
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [user, setUser] = useState(() => {
-    try {
-      const savedUser = localStorage.getItem("fitTrackUser");
-      return savedUser ? JSON.parse(savedUser) : null;
-    } catch {
-      return null;
-    }
-  });
+  const [user, setUser] = useState(null);
+  const [message, setMessage] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const submit = (e) => {
-    e.preventDefault();
-
-    const newUser = {
-      fullName: fullName || user?.fullName || "Fitness Enthusiast",
-      email: email,
-      joinedAt: user?.joinedAt || new Date().toISOString(),
-      lastActive: new Date().toISOString()
+  useEffect(() => {
+    let isMounted = true;
+    const loadUser = async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (!isMounted) return;
+      if (error) setMessage({ type: "error", text: "Unable to connect to the account service. Please try again shortly." });
+      setUser(data.user ?? null);
+      setIsLoading(false);
     };
+    loadUser();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (isMounted) setUser(session?.user ?? null);
+    });
+    return () => { isMounted = false; subscription.unsubscribe(); };
+  }, []);
 
-    localStorage.setItem("fitTrackUser", JSON.stringify(newUser));
-    setUser(newUser);
-    setMessage(mode === "login" ? "Welcome back!" : "Account created successfully!");
+  const switchMode = (nextMode) => { setMode(nextMode); setMessage(null); };
+
+  const handleAuth = async (event) => {
+    event.preventDefault();
+    setMessage(null);
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !password) return setMessage({ type: "error", text: "Enter your email address and password." });
+    if (mode === "signup" && password.length < 6) return setMessage({ type: "error", text: "Use a password with at least 6 characters." });
+    if (mode === "signup" && !fullName.trim()) return setMessage({ type: "error", text: "Enter your name to create an account." });
+    setIsSubmitting(true);
+    try {
+      if (mode === "signup") {
+        const { data, error } = await supabase.auth.signUp({ email: cleanEmail, password, options: { data: { full_name: fullName.trim() } } });
+        if (error) throw error;
+        if (data.session && data.user) {
+          setUser(data.user);
+          setMessage({ type: "success", text: "Your account is ready to use." });
+        } else {
+          setMessage({ type: "success", text: "Account created. Check your email to confirm it, then log in." });
+          setMode("login");
+        }
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
+        if (error) throw error;
+        setUser(data.user);
+        setMessage({ type: "success", text: "Logged in successfully." });
+      }
+    } catch (error) {
+      setMessage({ type: "error", text: error.message || "Authentication failed. Please try again." });
+    } finally { setIsSubmitting(false); }
   };
 
-  const logout = () => {
-    localStorage.removeItem("fitTrackUser");
-    setUser(null);
-    setMessage("Logged out successfully.");
+  const logout = async () => {
+    setIsSubmitting(true);
+    const { error } = await supabase.auth.signOut();
+    if (error) setMessage({ type: "error", text: error.message });
+    else { setUser(null); setPassword(""); setMessage({ type: "success", text: "You have been logged out." }); }
+    setIsSubmitting(false);
   };
 
-  const displayName = user?.fullName?.trim()?.split(" ")[0] || "there";
-  const isSuccessMessage = /success|welcome|back|logged out/i.test(message);
+  if (isLoading) return <div className="auth-panel auth-loading">Loading your account…</div>;
 
   if (user) {
-    return (
-      <section className="auth-panel feature-panel">
-        <div className="auth-shell">
-          <div className="auth-hero">
-            <span className="auth-badge">Your account</span>
-            <h2>Welcome back, {displayName}!</h2>
-            <p>Your progress, plans, and training rhythm are waiting for you.</p>
-            <AuthIllustration />
-          </div>
-
-          <div className="auth-card-grid">
-            <div className="auth-panel-card">
-              <h3>Profile snapshot</h3>
-              <div className="profile-info">
-                <div className="profile-row">
-                  <span>Email</span>
-                  <strong>{user.email}</strong>
-                </div>
-                <div className="profile-row">
-                  <span>Member since</span>
-                  <strong>{new Date(user.joinedAt).toLocaleDateString()}</strong>
-                </div>
-                <div className="profile-row">
-                  <span>Last active</span>
-                  <strong>{new Date(user.lastActive).toLocaleDateString()}</strong>
-                </div>
-              </div>
-            </div>
-
-            <div className="auth-panel-card accent-card">
-              <h3>What to do next</h3>
-              <ul className="auth-benefits">
-                <li>Review your latest workouts</li>
-                <li>Update your body measurements</li>
-                <li>Pick a fresh training template</li>
-              </ul>
-              <button className="primary-button" onClick={logout}>
-                Log Out
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-    );
+    return <section className="auth-panel" aria-labelledby="account-heading"><div className="auth-shell">
+      <div className="auth-hero"><span className="auth-badge">Account active</span><h2 id="account-heading">Welcome back, {user.user_metadata?.full_name || "Athlete"}.</h2><p>Your workout progress and account details are ready whenever you are.</p><div className="auth-highlights"><div className="auth-highlight"><span>✓</span><p>Secure sign-in</p></div><div className="auth-highlight"><span>↗</span><p>Track progress</p></div></div></div>
+      <div className="auth-card-grid"><div className="auth-panel-card"><h3>Account details</h3><div className="profile-info"><div className="profile-row"><span>Name</span><strong>{user.user_metadata?.full_name || "Not set"}</strong></div><div className="profile-row"><span>Email</span><strong>{user.email}</strong></div></div></div><div className="auth-panel-card accent-card"><h3>Session</h3><p className="auth-session-copy">You are securely signed in on this device.</p><button type="button" onClick={logout} disabled={isSubmitting}>{isSubmitting ? "Logging out…" : "Log out"}</button></div></div>
+    </div></section>;
   }
 
-  return (
-    <section className="auth-panel feature-panel">
-      <div className="auth-shell">
-        <div className="auth-hero">
-          <span className="auth-badge">FitTrack account</span>
-          <h2>Keep every workout in one place</h2>
-          <p>Sign in to save your progress and pick up where you left off on any device.</p>
-          <AuthIllustration />
-
-          <div className="auth-highlights">
-            <div className="auth-highlight">
-              <p>Fast sign in</p>
-            </div>
-            <div className="auth-highlight">
-              <p>Track progress</p>
-            </div>
-            <div className="auth-highlight">
-              <p>Stay consistent</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="auth-form-card">
-          <form className="auth-form" onSubmit={submit}>
-            <div className="auth-toggle">
-              <button type="button" className={mode === "login" ? "active" : ""} onClick={() => setMode("login")}>Log in</button>
-              <button type="button" className={mode === "signup" ? "active" : ""} onClick={() => setMode("signup")}>Sign up</button>
-            </div>
-
-            {mode === "signup" && (
-              <label className="auth-field">
-                <span>Full name</span>
-                <input
-                  required
-                  type="text"
-                  placeholder="Your name"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                />
-              </label>
-            )}
-
-            <label className="auth-field">
-              <span>Email address</span>
-              <input
-                required
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@example.com"
-                autoComplete="email"
-              />
-            </label>
-
-            <label className="auth-field">
-              <span>Password</span>
-              <input required type="password" minLength="6" placeholder="At least 6 characters" autoComplete="current-password" />
-            </label>
-
-            <button className="primary-button" type="submit">
-              {mode === "login" ? "Log in" : "Create account"}
-            </button>
-
-            {message && <p className={`form-message ${isSuccessMessage ? "success" : ""}`}>{message}</p>}
-          </form>
-        </div>
-      </div>
-    </section>
-  );
+  return <section className="auth-panel" aria-labelledby="auth-heading"><div className="auth-shell">
+    <div className="auth-hero"><span className="auth-badge">FitLab account</span><h2 id="auth-heading">Make every workout count.</h2><p>Sign in to keep your fitness routine connected and ready for your next session.</p><ul className="auth-benefits"><li>Keep your training in one place</li><li>Load workouts from any signed-in device</li><li>Build consistent habits over time</li></ul></div>
+    <div className="auth-form-card"><div className="auth-toggle" aria-label="Account action"><button type="button" className={mode === "login" ? "active" : ""} onClick={() => switchMode("login")} aria-pressed={mode === "login"}>Log in</button><button type="button" className={mode === "signup" ? "active" : ""} onClick={() => switchMode("signup")} aria-pressed={mode === "signup"}>Create account</button></div>
+      <form className="auth-form" onSubmit={handleAuth} noValidate>{mode === "signup" && <label className="auth-field"><span>Full name</span><input type="text" autoComplete="name" value={fullName} onChange={(event) => setFullName(event.target.value)} placeholder="Your name" required /></label>}<label className="auth-field"><span>Email address</span><input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" required /></label><label className="auth-field"><span>Password</span><input type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="At least 6 characters" minLength={mode === "signup" ? 6 : undefined} required /></label><button type="submit" disabled={isSubmitting}>{isSubmitting ? "Please wait…" : mode === "login" ? "Log in" : "Create account"}</button>{message && <p className={`form-message ${message.type === "success" ? "success" : ""}`} role="status">{message.text}</p>}</form>
+    </div>
+  </div></section>;
 }

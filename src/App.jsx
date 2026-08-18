@@ -1,43 +1,62 @@
 import { useEffect, useState } from 'react';
+import { supabase } from './supabaseClient';
+
 import Dashboard from './components/Dashboard';
 import WorkoutTracker from './components/WorkoutTracker';
 import WorkoutHistory from './components/WorkoutHistory';
 import WorkoutTemplates from './components/WorkoutTemplates';
 import ExerciseLibrary from './components/ExerciseLibrary';
 import BodyComposition from './components/BodyComposition';
+import NutritionTracker from './components/NutritionTracker';
+import WeightTracker from './components/WeightTracker';
+import ProgressiveOverload from './components/ProgressiveOverload';
+import PersonalRecords from './components/PersonalRecords';
+import WorkoutCalendar from './components/WorkoutCalendar';
+import UserProfile from './components/UserProfile';
+import WorkoutGenerator from './components/WorkoutGenerator';
+import Gamification from './components/Gamification';
+import Analytics from './components/Analytics';
 import AuthPanel from './components/AuthPanel';
 import DataExport from './components/DataExport';
 import './App.css';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [theme, setTheme] = useState(() => {
-    if (typeof window === 'undefined') {
-      return 'dark';
-    }
-
-    return window.localStorage.getItem('fit-theme') || 'dark';
-  });
+  const [theme, setTheme] = useState(() => localStorage.getItem('fitlab-theme') || 'dark');
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    document.documentElement.style.colorScheme = theme;
-    window.localStorage.setItem('fit-theme', theme);
+    supabase.auth.getUser().then(({ data }) => {
+      console.log("Current logged in user:", data.user);
+    });
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem('fitlab-theme', theme);
   }, [theme]);
 
   const tabs = [
     ['dashboard', 'Dashboard'],
     ['workout', 'Workout'],
     ['history', 'History'],
+    ['progress', 'Progress'],
+    ['records', 'Records'],
+    ['calendar', 'Calendar'],
     ['templates', 'Templates'],
     ['library', 'Exercise library'],
     ['bodycomp', 'Body Composition'],
+    ['nutrition', 'Nutrition'],
+    ['weight', 'Weight Tracker'],
+    ['generator', 'Workout Generator'],
+    ['gamification', 'Achievements'],
+    ['analytics', 'Analytics'],
+    ['profile', 'Profile'],
     ['account', 'Account'],
     ['export', 'Export'],
   ];
 
   return (
-    <div className={`app theme-${theme}`}>
+    <div className="app">
       <header className="app-header">
         <div className="app-header-top">
           <div>
@@ -46,20 +65,22 @@ function App() {
           </div>
           <button
             className="theme-toggle"
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            type="button"
+            onClick={() => setTheme((currentTheme) => currentTheme === 'dark' ? 'light' : 'dark')}
+            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            aria-pressed={theme === 'light'}
           >
             {theme === 'dark' ? 'Light mode' : 'Dark mode'}
           </button>
         </div>
       </header>
 
-      <nav className="app-nav">
+      <nav className="app-nav" aria-label="Primary navigation">
         {tabs.map(([id, label]) => (
           <button
             key={id}
             className={activeTab === id ? 'active' : ''}
             onClick={() => setActiveTab(id)}
+            aria-current={activeTab === id ? 'page' : undefined}
           >
             {label}
           </button>
@@ -70,10 +91,18 @@ function App() {
         {activeTab === 'dashboard' && <Dashboard />}
         {activeTab === 'workout' && <WorkoutTracker />}
         {activeTab === 'history' && <WorkoutHistory />}
+        {activeTab === 'progress' && <ProgressiveOverload />}
+        {activeTab === 'records' && <PersonalRecords />}
+        {activeTab === 'calendar' && <WorkoutCalendar />}
         {activeTab === 'templates' && <WorkoutTemplates />}
         {activeTab === 'library' && <ExerciseLibrary />}
         {activeTab === 'bodycomp' && <BodyComposition />}
-
+        {activeTab === 'nutrition' && <NutritionTracker />}
+        {activeTab === 'weight' && <WeightTracker />}
+        {activeTab === 'generator' && <WorkoutGenerator />}
+        {activeTab === 'gamification' && <Gamification />}
+        {activeTab === 'analytics' && <Analytics />}
+        {activeTab === 'profile' && <UserProfile />}
         {activeTab === 'account' && <AuthPanel />}
         {activeTab === 'export' && <DataExport />}
       </main>

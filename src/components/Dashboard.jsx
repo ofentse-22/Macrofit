@@ -81,6 +81,15 @@ export default function Dashboard() {
   const [workouts] = useState(() => getDataSaved("workouts"));
   const [bodyCompositionHistory] = useState(() => getDataSaved("bodyCompositionHistory"));
   const [workoutHistory] = useState(() => getDataSaved("workoutHistory"));
+  const [nutritionLog] = useState(() => getDataSaved("nutritionLog"));
+  const [weightHistory] = useState(() => getDataSaved("weightHistory"));
+  const [nutritionGoals] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("nutritionGoals") || "{}");
+    } catch {
+      return {};
+    }
+  });
   const [goals, setGoals] = useState(() => {
     if (typeof window === "undefined") return { weight: "", strength: "" };
 
@@ -155,6 +164,24 @@ export default function Dashboard() {
     .reverse()
     .map((entry) => ({ label: entry.title || "Workout", completedRatio: Number(entry.completedRatio) || 0 }));
 
+  // Nutrition data for today
+  const today = new Date().toISOString().split("T")[0];
+  const todayNutrition = nutritionLog.filter((meal) => meal.date === today);
+  const nutritionTotals = todayNutrition.reduce(
+    (acc, meal) => ({
+      calories: acc.calories + (meal.calories || 0),
+      protein: acc.protein + (meal.protein || 0),
+    }),
+    { calories: 0, protein: 0 }
+  );
+  const nutritionGoal = Number(nutritionGoals.calories) || 2500;
+  const caloriesRemaining = Math.max(0, nutritionGoal - nutritionTotals.calories);
+
+  // Weight data for today
+  const todayWeight = weightHistory.find((entry) => entry.date === today);
+  const previousWeight = weightHistory.length > 1 ? weightHistory[1].weight : null;
+  const weightChange = previousWeight && todayWeight ? (todayWeight.weight - previousWeight).toFixed(1) : null;
+
   const shareProgress = async () => {
     const text = `FitTrack Progress: ${currentStreak} day streak | BMI: ${latestBmi} | ${totalExercises} exercises tracked`;
 
@@ -216,6 +243,60 @@ export default function Dashboard() {
         <StatCard label="Current BMI" value={latestBmi} detail="Latest recorded" />
         <StatCard label="Exercises" value={totalExercises} detail="In current workout" />
         <StatCard label="Completion Rate" value={completionRate + "%"} detail="Sets finished" />
+      </div>
+
+      <div className="chart-grid-stack">
+        <article className="trend-card">
+          <h4>🔥 Today's Nutrition</h4>
+          <p>Calorie and protein intake</p>
+          <div className="summary-stats">
+            <div className="summary-stat">
+              <span className="summary-label">Consumed</span>
+              <span className="summary-value">{nutritionTotals.calories.toFixed(0)}</span>
+              <span className="summary-unit">kcal</span>
+            </div>
+            <div className="summary-stat">
+              <span className="summary-label">Remaining</span>
+              <span className="summary-value">{caloriesRemaining.toFixed(0)}</span>
+              <span className="summary-unit">kcal</span>
+            </div>
+            <div className="summary-stat">
+              <span className="summary-label">Protein</span>
+              <span className="summary-value">{nutritionTotals.protein.toFixed(0)}</span>
+              <span className="summary-unit">g</span>
+            </div>
+          </div>
+        </article>
+
+        {todayWeight && (
+          <article className="trend-card">
+            <h4>⚖️ Today's Weight</h4>
+            <p>Weight tracking</p>
+            <div className="summary-stats">
+              <div className="summary-stat">
+                <span className="summary-label">Today</span>
+                <span className="summary-value">{todayWeight.weight.toFixed(1)}</span>
+                <span className="summary-unit">kg</span>
+              </div>
+              {weightChange && (
+                <div className="summary-stat">
+                  <span className="summary-label">Change</span>
+                  <span className={`summary-value ${weightChange > 0 ? "positive" : "negative"}`}>
+                    {weightChange > 0 ? "+" : ""}{weightChange}
+                  </span>
+                  <span className="summary-unit">kg</span>
+                </div>
+              )}
+              {previousWeight && (
+                <div className="summary-stat">
+                  <span className="summary-label">Previous</span>
+                  <span className="summary-value">{previousWeight.toFixed(1)}</span>
+                  <span className="summary-unit">kg</span>
+                </div>
+              )}
+            </div>
+          </article>
+        )}
       </div>
 
       <div className="dashboard-chart-card">

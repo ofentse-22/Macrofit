@@ -27,7 +27,7 @@ export default function BodyComposition() {
   // BMI
   const bmi = w / (heightM * heightM);
 
-  let bmiCategory = "";
+  let bmiCategory;
 
   if (bmi < 18.5)
     bmiCategory = "Underweight";
@@ -46,7 +46,7 @@ export default function BodyComposition() {
 
   bodyFat = Math.max(3, Math.min(bodyFat, 60));
 
-  let bodyFatCategory = "";
+  let bodyFatCategory;
 
   if (gender === "male") {
 

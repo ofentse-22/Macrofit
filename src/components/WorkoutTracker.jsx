@@ -2,24 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import "./WorkoutTracker.css";
 import exerciseLibrary from "../data/exercises";
 import RestTimer from "./RestTimer";
-
-const loadSavedExercises = () => {
-  const saved = localStorage.getItem("workouts");
-  if (!saved) return [];
-  try {
-    return JSON.parse(saved);
-  } catch {
-    localStorage.removeItem("workouts");
-    return [];
-  }
-};
-
-const createExerciseId = () => {
-  return crypto.randomUUID?.() || Math.random().toString(36).slice(2) + Date.now();
-};
+import { supabase } from '../supabaseClient';
 
 export default function WorkoutTracker() {
-  const [exercises, setExercises] = useState(loadSavedExercises);
+  const [exercises, setExercises] = useState([]);
   const [category, setCategory] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [exerciseName, setExerciseName] = useState("");
@@ -29,85 +15,116 @@ export default function WorkoutTracker() {
   const [restTime, setRestTime] = useState("60");
   const [editingId, setEditingId] = useState(null);
 
+  
   useEffect(() => {
-    localStorage.setItem("workouts", JSON.stringify(exercises));
-  }, [exercises]);
+    const loadExercises = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('workouts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) console.error("Error loading workouts:", error);
+      else setExercises(data || []);
+    };
+
+    loadExercises();
+  }, []);
 
   const filteredExercises = useMemo(() => {
     const normalizedQuery = searchTerm.trim().toLowerCase();
-
     return exerciseLibrary.filter((ex) => {
-      const matchesCategory = !category || ex.category.trim().toLowerCase() === category.trim().toLowerCase();
-      const matchesSearch =
-        normalizedQuery.length === 0 ||
-        ex.name.toLowerCase().includes(normalizedQuery) ||
-        ex.category.toLowerCase().includes(normalizedQuery);
-
+      const matchesCategory = !category || ex.category === category;
+      const matchesSearch = normalizedQuery.length === 0 || 
+        ex.name.toLowerCase().includes(normalizedQuery);
       return matchesCategory && matchesSearch;
     });
   }, [category, searchTerm]);
 
-  const addExercise = () => {
-    if (!exerciseName || !sets || !reps) {
-      alert("Please select a Category, Exercise, and fill Sets & Reps");
-      return;
-    }
-
-    const selected = exerciseLibrary.find((ex) => ex.name === exerciseName);
-
-    const newExercise = {
-      id: createExerciseId(),
-      name: exerciseName,
-      image: selected?.image || "",
-      instructions: selected?.instructions || "",
-      category: selected?.category || "",
-      sets: parseInt(sets),
-      reps: parseInt(reps),
-      weight: weight ? parseFloat(weight) : 0,
-      restTime: parseInt(restTime),
-      completedSets: 0,
-      createdAt: new Date().toISOString(),
-    };
-
-    setExercises((prev) => [...prev, newExercise]);
-    clearForm();
-  };
-
-  const updateExercise = () => {
-    if (!exerciseName || !sets || !reps) return;
-
-    setExercises((prev) =>
-      prev.map((ex) =>
-        ex.id === editingId
-          ? {
-              ...ex,
-              name: exerciseName,
-              sets: parseInt(sets),
-              reps: parseInt(reps),
-              weight: weight ? parseFloat(weight) : 0,
-              restTime: parseInt(restTime),
-            }
-          : ex
-      )
-    );
-
-    clearForm();
-    setEditingId(null);
-  };
-
   const clearForm = () => {
+    setCategory("");
+    setSearchTerm("");
     setExerciseName("");
     setSets("");
     setReps("");
     setWeight("");
     setRestTime("60");
-    setSearchTerm("");
   };
 
-  const deleteExercise = (id) => {
-    if (window.confirm("Delete this exercise?")) {
-      setExercises((prev) => prev.filter((ex) => ex.id !== id));
+  const addExercise = async () => {
+    if (!exerciseName || !sets || !reps) {
+      alert("Please select Category, Exercise, and fill Sets & Reps");
+      return;
     }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      alert("Please log in first");
+      return;
+    }
+
+    const selected = exerciseLibrary.find(ex => ex.name === exerciseName);
+
+    const newExercise = {
+      user_id: user.id,
+      name: exerciseName,
+      category,
+      image: selected?.image || null,
+      instructions: selected?.instructions || null,
+      sets: parseInt(sets),
+      reps: parseInt(reps),
+      weight: weight ? parseFloat(weight) : 0,
+      rest_time: parseInt(restTime),
+      completed_sets: 0
+    };
+
+    const { data, error } = await supabase
+      .from("workouts")
+      .insert([newExercise])
+      .select();
+
+    console.log("Inserted:", data);
+    console.log("Error:", error);
+
+    if (error) {
+      alert("Error saving exercise: " + error.message);
+    } else {
+      alert("Exercise added successfully!");
+      setExercises(prev => [...data, ...prev]);
+      clearForm();
+    }
+  };
+
+  const updateExercise = async () => {
+    if (!exerciseName || !sets || !reps) return;
+
+    const { error } = await supabase
+      .from('workouts')
+      .update({
+        name: exerciseName,
+        sets: parseInt(sets),
+        reps: parseInt(reps),
+        weight: weight ? parseFloat(weight) : 0,
+        rest_time: parseInt(restTime)
+      })
+      .eq('id', editingId);
+
+    if (error) alert("Error updating: " + error.message);
+    else {
+      alert("Exercise updated!");
+      window.location.reload();
+    }
+  };
+
+  const deleteExercise = async (id) => {
+    if (!window.confirm("Delete this exercise?")) return;
+
+    const { error } = await supabase.from('workouts').delete().eq('id', id);
+    if (error) alert("Error deleting: " + error.message);
+    else window.location.reload();
   };
 
   const editExercise = (exercise) => {
@@ -116,60 +133,45 @@ export default function WorkoutTracker() {
     setSets(exercise.sets.toString());
     setReps(exercise.reps.toString());
     setWeight(exercise.weight?.toString() || "");
-    setRestTime(exercise.restTime?.toString() || "60");
+    setRestTime(exercise.rest_time?.toString() || "60");
     setCategory(exercise.category);
   };
 
-  const completeSet = (id) => {
-    setExercises((prev) =>
-      prev.map((ex) =>
-        ex.id === id && ex.completedSets < ex.sets
-          ? { ...ex, completedSets: ex.completedSets + 1 }
-          : ex
-      )
-    );
+  const completeSet = async (id) => {
+    const exercise = exercises.find(ex => ex.id === id);
+    if (!exercise) return;
+
+    const { error } = await supabase
+      .from('workouts')
+      .update({ completed_sets: exercise.completed_sets + 1 })
+      .eq('id', id);
+
+    if (error) console.error(error);
+    else window.location.reload();
   };
 
-  const resetExercise = (id) => {
-    setExercises((prev) =>
-      prev.map((ex) => (ex.id === id ? { ...ex, completedSets: 0 } : ex))
-    );
+  const resetExercise = async (id) => {
+    const { error } = await supabase
+      .from('workouts')
+      .update({ completed_sets: 0 })
+      .eq('id', id);
+
+    if (error) console.error(error);
+    else window.location.reload();
   };
 
   const getProgress = (exercise) => {
-    return exercise.sets > 0 ? (exercise.completedSets / exercise.sets) * 100 : 0;
+    return exercise.sets > 0 ? (exercise.completed_sets / exercise.sets) * 100 : 0;
   };
 
-  const clearAllExercises = () => {
-    if (window.confirm("Clear entire workout? This cannot be undone.")) {
-      setExercises([]);
-      localStorage.removeItem("workouts");
-    }
-  };
+  const clearAllExercises = async () => {
+    if (!window.confirm("Clear entire workout?")) return;
 
-  const saveWorkoutToHistory = () => {
-    if (exercises.length === 0) {
-      alert("Add a few exercises before saving your workout.");
-      return;
-    }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
-    const history = JSON.parse(localStorage.getItem("workoutHistory") || "[]");
-    const totalSets = exercises.reduce((sum, exercise) => sum + exercise.sets, 0);
-    const completedSets = exercises.reduce((sum, exercise) => sum + exercise.completedSets, 0);
-
-    const newEntry = {
-      id: createExerciseId(),
-      title: `Workout • ${new Date().toLocaleDateString()}`,
-      completedAt: new Date().toISOString(),
-      exerciseCount: exercises.length,
-      totalSets,
-      completedSets,
-      completedRatio: totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0,
-      exercises: exercises.map(({ id, ...rest }) => rest),
-    };
-
-    localStorage.setItem("workoutHistory", JSON.stringify([newEntry, ...history]));
-    alert("Workout saved to history.");
+    await supabase.from('workouts').delete().eq('user_id', user.id);
+    setExercises([]);
   };
 
   return (
@@ -183,14 +185,7 @@ export default function WorkoutTracker() {
           <div className="form-grid">
             <div className="input-wrapper">
               <label>Category</label>
-              <select
-                value={category}
-                onChange={(e) => {
-                  setCategory(e.target.value);
-                  setExerciseName("");
-                  setSearchTerm("");
-                }}
-              >
+              <select value={category} onChange={(e) => { setCategory(e.target.value); setExerciseName(""); setSearchTerm(""); }}>
                 <option value="">Select Category</option>
                 <option value="Chest">Chest</option>
                 <option value="Back">Back</option>
@@ -204,27 +199,21 @@ export default function WorkoutTracker() {
 
             <div className="input-wrapper">
               <label>Search exercises</label>
-              <input
-                type="text"
-                placeholder="Search by name or focus"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                disabled={!category}
+              <input 
+                type="text" 
+                placeholder="Search by name" 
+                value={searchTerm} 
+                onChange={(e) => setSearchTerm(e.target.value)} 
+                disabled={!category} 
               />
             </div>
 
             <div className="input-wrapper">
               <label>Exercise</label>
-              <select
-                value={exerciseName}
-                onChange={(e) => setExerciseName(e.target.value)}
-                disabled={!category}
-              >
-                <option value="">{filteredExercises.length > 0 ? "Select Exercise" : "No matches found"}</option>
+              <select value={exerciseName} onChange={(e) => setExerciseName(e.target.value)} disabled={!category}>
+                <option value="">Select Exercise</option>
                 {filteredExercises.map((ex) => (
-                  <option key={ex.name} value={ex.name}>
-                    {ex.name}
-                  </option>
+                  <option key={ex.name} value={ex.name}>{ex.name}</option>
                 ))}
               </select>
             </div>
@@ -254,7 +243,7 @@ export default function WorkoutTracker() {
             {editingId ? (
               <>
                 <button className="btn-update" onClick={updateExercise}>Update Exercise</button>
-                <button className="btn-cancel" onClick={() => { clearForm(); setEditingId(null); }}>Cancel</button>
+                <button className="btn-cancel" onClick={() => { setEditingId(null); clearForm(); }}>Cancel</button>
               </>
             ) : (
               <button className="btn-add" onClick={addExercise}>Add to Workout</button>
@@ -266,32 +255,32 @@ export default function WorkoutTracker() {
           <div className="workout-header">
             <h3>Your Current Workout ({exercises.length})</h3>
             {exercises.length > 0 && (
-              <div className="workout-header-actions">
-                <button className="btn-save" onClick={saveWorkoutToHistory} disabled={exercises.length === 0}>
-                  Save Workout
-                </button>
-                <button className="btn-delete clear-all-btn" onClick={clearAllExercises}>
-                  Clear All
-                </button>
-              </div>
+              <button className="btn-delete clear-all-btn" onClick={clearAllExercises}>
+                Clear All
+              </button>
             )}
           </div>
 
           {exercises.length === 0 ? (
-            <p className="empty-message">No exercises added yet. Start building your workout or load a template!</p>
+            <p className="empty-message">No exercises added yet. Start building your workout!</p>
           ) : (
             exercises.map((exercise) => (
               <div key={exercise.id} className="exercise-item">
                 <div className="exercise-header">
                   {exercise.image && (
-                    <img src={exercise.image} alt={exercise.name} className="workout-image" onError={(e) => (e.target.style.display = "none")} />
+                    <img
+                      src={exercise.image}
+                      alt={exercise.name}
+                      className="workout-image"
+                      onError={() => console.log("Image failed to load:", exercise.image)}
+                    />
                   )}
                   <div className="exercise-info">
                     <h4>{exercise.name}</h4>
                     <div className="exercise-stats">
                       <span>{exercise.sets} sets × {exercise.reps} reps</span>
                       {exercise.weight > 0 && <span>{exercise.weight} kg</span>}
-                      <span className="rest-badge">Rest: {exercise.restTime}s</span>
+                      <span className="rest-badge">Rest: {exercise.rest_time}s</span>
                     </div>
                   </div>
 
@@ -306,19 +295,19 @@ export default function WorkoutTracker() {
                     <div className="progress-fill" style={{ width: `${getProgress(exercise)}%` }} />
                   </div>
                   <span className="progress-text">
-                    {exercise.completedSets} / {exercise.sets} sets completed
+                    {exercise.completed_sets} / {exercise.sets} sets completed
                   </span>
                 </div>
 
-                {exercise.completedSets > 0 && exercise.completedSets < exercise.sets && (
-                  <RestTimer restTime={exercise.restTime} isActive={true} onComplete={() => {}} />
+                {exercise.completed_sets > 0 && exercise.completed_sets < exercise.sets && (
+                  <RestTimer restTime={exercise.rest_time} isActive={true} onComplete={() => {}} />
                 )}
 
                 <div className="exercise-controls">
-                  <button className="btn-complete" onClick={() => completeSet(exercise.id)} disabled={exercise.completedSets >= exercise.sets}>
+                  <button className="btn-complete" onClick={() => completeSet(exercise.id)} disabled={exercise.completed_sets >= exercise.sets}>
                     Complete Set
                   </button>
-                  <button className="btn-reset" onClick={() => resetExercise(exercise.id)} disabled={exercise.completedSets === 0}>
+                  <button className="btn-reset" onClick={() => resetExercise(exercise.id)} disabled={exercise.completed_sets === 0}>
                     Reset Progress
                   </button>
                 </div>
