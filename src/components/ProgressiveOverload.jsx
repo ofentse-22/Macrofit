@@ -110,7 +110,7 @@ export default function ProgressiveOverload() {
   return (
     <div className="progressive-overload-container">
       <div className="overload-header">
-        <h2>💪 Progressive Overload</h2>
+        <h2>Progressive Overload</h2>
         <p>Track your strength progression over time</p>
       </div>
 
@@ -218,7 +218,7 @@ export default function ProgressiveOverload() {
       )}
 
       <div className="tips-section">
-        <h3>🎯 Progressive Overload Tips</h3>
+        <h3>Progressive Overload Tips</h3>
         <ul>
           <li>
             <strong>Increase Weight:</strong> Add 2.5-5kg when you can complete all sets

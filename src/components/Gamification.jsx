@@ -72,12 +72,12 @@ export default function Gamification() {
 
     // Milestone achievements
     const milestones = [
-      { count: 1, name: 'First Workout', icon: '🎉', xp: 50 },
-      { count: 5, name: 'Consistent', icon: '💪', xp: 100 },
-      { count: 10, name: 'Dedicated', icon: '🏆', xp: 200 },
-      { count: 25, name: 'Seasoned Lifter', icon: '👑', xp: 500 },
-      { count: 50, name: 'Iron Warrior', icon: '⚔️', xp: 1000 },
-      { count: 100, name: 'Legend', icon: '🌟', xp: 2000 },
+      { count: 1, name: 'First Workout', icon: '', xp: 50 },
+      { count: 5, name: 'Consistent', icon: '', xp: 100 },
+      { count: 10, name: 'Dedicated', icon: '', xp: 200 },
+      { count: 25, name: 'Seasoned Lifter', icon: '', xp: 500 },
+      { count: 50, name: 'Iron Warrior', icon: '', xp: 1000 },
+      { count: 100, name: 'Legend', icon: '', xp: 2000 },
     ];
 
     milestones.forEach(milestone => {
@@ -94,10 +94,10 @@ export default function Gamification() {
 
     // Streak achievements
     const streakMilestones = [
-      { days: 3, name: 'On Fire', icon: '🔥', xp: 75 },
-      { days: 7, name: 'Weekly Warrior', icon: '📅', xp: 150 },
-      { days: 14, name: 'Fortnight Champ', icon: '💎', xp: 300 },
-      { days: 30, name: 'Monthly Master', icon: '🎖️', xp: 500 },
+      { days: 3, name: 'On Fire', icon: '', xp: 75 },
+      { days: 7, name: 'Weekly Warrior', icon: '', xp: 150 },
+      { days: 14, name: 'Fortnight Champ', icon: '', xp: 300 },
+      { days: 30, name: 'Monthly Master', icon: '', xp: 500 },
     ];
 
     // Note: We can't calculate actual streaks here without date info, so we'll show them as locked
@@ -115,9 +115,9 @@ export default function Gamification() {
     if (workoutHistory.length > 0) {
       const totalSets = workoutHistory.reduce((sum, w) => sum + (w.totalSets || 0), 0);
       const volumeAchievements = [
-        { sets: 50, name: 'Volume Builder', icon: '📈', xp: 100 },
-        { sets: 200, name: 'Mass Constructor', icon: '🏗️', xp: 250 },
-        { sets: 500, name: 'Volume Machine', icon: '⚙️', xp: 500 },
+        { sets: 50, name: 'Volume Builder', icon: '', xp: 100 },
+        { sets: 200, name: 'Mass Constructor', icon: '', xp: 250 },
+        { sets: 500, name: 'Volume Machine', icon: '', xp: 500 },
       ];
 
       volumeAchievements.forEach(achievement => {
@@ -153,7 +153,7 @@ export default function Gamification() {
       {/* Streak Section */}
       <section className="streak-section">
         <div className="streak-card main-streak">
-          <div className="streak-icon">🔥</div>
+          <div className="streak-icon"></div>
           <div className="streak-info">
             <h3>Current Streak</h3>
             <p className="streak-number">{stats.currentStreak}</p>
@@ -162,7 +162,7 @@ export default function Gamification() {
         </div>
 
         <div className="streak-card best-streak">
-          <div className="streak-icon">🏆</div>
+          <div className="streak-icon"></div>
           <div className="streak-info">
             <h3>Best Streak</h3>
             <p className="streak-number">{stats.bestStreak}</p>
@@ -171,7 +171,7 @@ export default function Gamification() {
         </div>
 
         <div className="streak-card total-workouts">
-          <div className="streak-icon">💪</div>
+          <div className="streak-icon"></div>
           <div className="streak-info">
             <h3>Total Workouts</h3>
             <p className="streak-number">{stats.totalWorkouts}</p>
@@ -180,7 +180,7 @@ export default function Gamification() {
         </div>
 
         <div className="streak-card total-xp">
-          <div className="streak-icon">⭐</div>
+          <div className="streak-icon"></div>
           <div className="streak-info">
             <h3>Total XP</h3>
             <p className="streak-number">{totalXP}</p>
@@ -194,19 +194,19 @@ export default function Gamification() {
         <h3>Tips to Maintain Your Streak</h3>
         <div className="tips-grid">
           <div className="tip-card">
-            <span className="tip-icon">📅</span>
+            <span className="tip-icon"></span>
             <p>Schedule workouts at the same time each day</p>
           </div>
           <div className="tip-card">
-            <span className="tip-icon">⏰</span>
+            <span className="tip-icon"></span>
             <p>Set reminders for your workout time</p>
           </div>
           <div className="tip-card">
-            <span className="tip-icon">📱</span>
+            <span className="tip-icon"></span>
             <p>Log each workout immediately after completion</p>
           </div>
           <div className="tip-card">
-            <span className="tip-icon">🎯</span>
+            <span className="tip-icon"></span>
             <p>Don't miss a day - consistency is key</p>
           </div>
         </div>

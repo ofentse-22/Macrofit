@@ -247,7 +247,7 @@ export default function Dashboard() {
 
       <div className="chart-grid-stack">
         <article className="trend-card">
-          <h4>🔥 Today's Nutrition</h4>
+          <h4>Today's Nutrition</h4>
           <p>Calorie and protein intake</p>
           <div className="summary-stats">
             <div className="summary-stat">
@@ -270,7 +270,7 @@ export default function Dashboard() {
 
         {todayWeight && (
           <article className="trend-card">
-            <h4>⚖️ Today's Weight</h4>
+            <h4>Today's Weight</h4>
             <p>Weight tracking</p>
             <div className="summary-stats">
               <div className="summary-stat">

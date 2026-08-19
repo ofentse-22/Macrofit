@@ -254,38 +254,38 @@ export default function NutritionTracker() {
 
       <div className="nutrition-summary">
         <div className="summary-section">
-          <h3>📊 Today's Goal</h3>
+          <h3>Today's Goal</h3>
           <div className="cards-grid">
-            <NutritionCard title="Calories" emoji="🔥" value={goals.calories} unit="kcal" color="#ef4444" />
-            <NutritionCard title="Protein" emoji="🍗" value={goals.protein} unit="g" color="#f97316" />
-            <NutritionCard title="Carbs" emoji="🍚" value={goals.carbs} unit="g" color="#eab308" />
-            <NutritionCard title="Fat" emoji="🥑" value={goals.fat} unit="g" color="#22c55e" />
+            <NutritionCard title="Calories" emoji="" value={goals.calories} unit="kcal" color="#ef4444" />
+            <NutritionCard title="Protein" emoji="" value={goals.protein} unit="g" color="#f97316" />
+            <NutritionCard title="Carbs" emoji="" value={goals.carbs} unit="g" color="#eab308" />
+            <NutritionCard title="Fat" emoji="" value={goals.fat} unit="g" color="#22c55e" />
           </div>
         </div>
 
         <div className="summary-section">
-          <h3>✅ Consumed</h3>
+          <h3>Consumed</h3>
           <div className="cards-grid">
-            <NutritionCard title="Calories" emoji="🔥" value={totals.calories.toFixed(0)} unit="kcal" color="#ef4444" />
-            <NutritionCard title="Protein" emoji="🍗" value={totals.protein.toFixed(0)} unit="g" color="#f97316" />
-            <NutritionCard title="Carbs" emoji="🍚" value={totals.carbs.toFixed(0)} unit="g" color="#eab308" />
-            <NutritionCard title="Fat" emoji="🥑" value={totals.fat.toFixed(0)} unit="g" color="#22c55e" />
+            <NutritionCard title="Calories" emoji="" value={totals.calories.toFixed(0)} unit="kcal" color="#ef4444" />
+            <NutritionCard title="Protein" emoji="" value={totals.protein.toFixed(0)} unit="g" color="#f97316" />
+            <NutritionCard title="Carbs" emoji="" value={totals.carbs.toFixed(0)} unit="g" color="#eab308" />
+            <NutritionCard title="Fat" emoji="" value={totals.fat.toFixed(0)} unit="g" color="#22c55e" />
           </div>
         </div>
 
         <div className="summary-section remaining">
-          <h3>🎯 Remaining</h3>
+          <h3>Remaining</h3>
           <div className="cards-grid">
-            <NutritionCard title="Calories" emoji="🔥" value={remaining.calories.toFixed(0)} unit="kcal" color="#ef4444" />
-            <NutritionCard title="Protein" emoji="🍗" value={remaining.protein.toFixed(0)} unit="g" color="#f97316" />
-            <NutritionCard title="Carbs" emoji="🍚" value={remaining.carbs.toFixed(0)} unit="g" color="#eab308" />
-            <NutritionCard title="Fat" emoji="🥑" value={remaining.fat.toFixed(0)} unit="g" color="#22c55e" />
+            <NutritionCard title="Calories" emoji="" value={remaining.calories.toFixed(0)} unit="kcal" color="#ef4444" />
+            <NutritionCard title="Protein" emoji="" value={remaining.protein.toFixed(0)} unit="g" color="#f97316" />
+            <NutritionCard title="Carbs" emoji="" value={remaining.carbs.toFixed(0)} unit="g" color="#eab308" />
+            <NutritionCard title="Fat" emoji="" value={remaining.fat.toFixed(0)} unit="g" color="#22c55e" />
           </div>
         </div>
       </div>
 
       <div className="macro-progress">
-        <h3>📈 Progress</h3>
+        <h3>Progress</h3>
         <MacroBar label="Calories" consumed={totals.calories} goal={goals.calories} color="#ef4444" />
         <MacroBar label="Protein" consumed={totals.protein} goal={goals.protein} color="#f97316" />
         <MacroBar label="Carbs" consumed={totals.carbs} goal={goals.carbs} color="#eab308" />
@@ -294,7 +294,7 @@ export default function NutritionTracker() {
 
       <div className="meals-section">
         <div className="meals-header">
-          <h3>🍽️ Meals</h3>
+          <h3>Meals</h3>
           <button onClick={() => setShowAddMeal(!showAddMeal)} className="btn-primary">
             {showAddMeal ? "Cancel" : "Add Food"}
           </button>
@@ -305,10 +305,10 @@ export default function NutritionTracker() {
             <div className="meal-type-selector">
               <label>Meal Type:</label>
               <select value={selectedMealType} onChange={(e) => setSelectedMealType(e.target.value)}>
-                <option value="breakfast">🥐 Breakfast</option>
-                <option value="lunch">🥗 Lunch</option>
-                <option value="dinner">🍽️ Dinner</option>
-                <option value="snacks">🍿 Snacks</option>
+                <option value="breakfast">Breakfast</option>
+                <option value="lunch">Lunch</option>
+                <option value="dinner">Dinner</option>
+                <option value="snacks">Snacks</option>
               </select>
             </div>
 
@@ -407,10 +407,10 @@ export default function NutritionTracker() {
           {Object.entries(mealsByType).map(([mealType, mealsList]) => (
             <div key={mealType} className="meal-section">
               <h4 className="meal-type-title">
-                {mealType === "breakfast" && "🥐 Breakfast"}
-                {mealType === "lunch" && "🥗 Lunch"}
-                {mealType === "dinner" && "🍽️ Dinner"}
-                {mealType === "snacks" && "🍿 Snacks"}
+                {mealType === "breakfast" && "Breakfast"}
+                {mealType === "lunch" && "Lunch"}
+                {mealType === "dinner" && "Dinner"}
+                {mealType === "snacks" && "Snacks"}
               </h4>
               {mealsList.length === 0 ? (
                 <p className="no-meals">No meals logged</p>
@@ -421,10 +421,10 @@ export default function NutritionTracker() {
                       <div className="meal-info">
                         <h5>{meal.name}</h5>
                         <div className="meal-macros">
-                          <span>🔥 {meal.calories} cal</span>
-                          <span>🍗 {meal.protein.toFixed(1)}g protein</span>
-                          <span>🍚 {meal.carbs.toFixed(1)}g carbs</span>
-                          <span>🥑 {meal.fat.toFixed(1)}g fat</span>
+                          <span>{meal.calories} cal</span>
+                          <span>{meal.protein.toFixed(1)}g protein</span>
+                          <span>{meal.carbs.toFixed(1)}g carbs</span>
+                          <span>{meal.fat.toFixed(1)}g fat</span>
                         </div>
                       </div>
                       <button

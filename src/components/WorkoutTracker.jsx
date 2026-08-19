@@ -115,7 +115,13 @@ export default function WorkoutTracker() {
     if (error) alert("Error updating: " + error.message);
     else {
       alert("Exercise updated!");
-      window.location.reload();
+      setExercises(exercises.map(ex => 
+        ex.id === editingId 
+          ? { ...ex, name: exerciseName, sets: parseInt(sets), reps: parseInt(reps), weight: weight ? parseFloat(weight) : 0, rest_time: parseInt(restTime) }
+          : ex
+      ));
+      setEditingId(null);
+      clearForm();
     }
   };
 
@@ -124,7 +130,9 @@ export default function WorkoutTracker() {
 
     const { error } = await supabase.from('workouts').delete().eq('id', id);
     if (error) alert("Error deleting: " + error.message);
-    else window.location.reload();
+    else {
+      setExercises(exercises.filter(ex => ex.id !== id));
+    }
   };
 
   const editExercise = (exercise) => {
@@ -147,7 +155,13 @@ export default function WorkoutTracker() {
       .eq('id', id);
 
     if (error) console.error(error);
-    else window.location.reload();
+    else {
+      setExercises(exercises.map(ex => 
+        ex.id === id 
+          ? { ...ex, completed_sets: ex.completed_sets + 1 }
+          : ex
+      ));
+    }
   };
 
   const resetExercise = async (id) => {
@@ -157,7 +171,13 @@ export default function WorkoutTracker() {
       .eq('id', id);
 
     if (error) console.error(error);
-    else window.location.reload();
+    else {
+      setExercises(exercises.map(ex => 
+        ex.id === id 
+          ? { ...ex, completed_sets: 0 }
+          : ex
+      ));
+    }
   };
 
   const getProgress = (exercise) => {
@@ -280,7 +300,8 @@ export default function WorkoutTracker() {
                     <div className="exercise-stats">
                       <span>{exercise.sets} sets × {exercise.reps} reps</span>
                       {exercise.weight > 0 && <span>{exercise.weight} kg</span>}
-                      <span className="rest-badge">Rest: {exercise.rest_time}s</span>
+                      <span className="
+                      rest-badge">Rest: {exercise.rest_time}s</span>
                     </div>
                   </div>
 

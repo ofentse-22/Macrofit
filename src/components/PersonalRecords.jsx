@@ -113,17 +113,7 @@ export default function PersonalRecords() {
   }, []);
 
   const getEmojiForExercise = (name) => {
-    const lower = name.toLowerCase();
-    if (lower.includes("bench")) return "🏋️";
-    if (lower.includes("squat")) return "🦵";
-    if (lower.includes("deadlift")) return "💪";
-    if (lower.includes("press")) return "💪";
-    if (lower.includes("pull")) return "🦾";
-    if (lower.includes("row")) return "🦾";
-    if (lower.includes("curl")) return "💪";
-    if (lower.includes("leg")) return "🦵";
-    if (lower.includes("chest")) return "🏋️";
-    return "🏋️";
+    return '';
   };
 
   if (loading) {
@@ -137,7 +127,7 @@ export default function PersonalRecords() {
   return (
     <div className="personal-records-container">
       <div className="records-header">
-        <h2>🏆 Personal Records</h2>
+        <h2>Personal Records</h2>
         <p>Your strongest lifts to date</p>
       </div>
 

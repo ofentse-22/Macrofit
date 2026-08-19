@@ -169,7 +169,7 @@ export default function WeightTracker() {
   return (
     <div className="weight-tracker-container">
       <div className="weight-header">
-        <h2>⚖️ Weight Tracker</h2>
+        <h2>Weight Tracker</h2>
         <div className="weight-header-buttons">
           <button onClick={() => setShowGoalForm(!showGoalForm)} className="btn-secondary">
             {showGoalForm ? "Cancel" : "Set Goals"}
@@ -216,7 +216,7 @@ export default function WeightTracker() {
       <div className="weight-summary">
         <div className="summary-row">
           <div className="summary-section">
-            <h3>📊 Current Status</h3>
+            <h3>Current Status</h3>
             <div className="cards-grid">
               <WeightCard
                 label="Today's Weight"
@@ -247,7 +247,7 @@ export default function WeightTracker() {
 
           {(startingWeight || goalWeight) && (
             <div className="summary-section goals-section">
-              <h3>🎯 Goal Progress</h3>
+              <h3>Goal Progress</h3>
               <div className="cards-grid">
                 {startingWeight && (
                   <WeightCard
@@ -285,7 +285,7 @@ export default function WeightTracker() {
               {estimatedDays !== null && (
                 <div className="estimated-goal">
                   <p>
-                    📅 <strong>Estimated goal date:</strong> {new Date(new Date().getTime() + estimatedDays * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    <strong>Estimated goal date:</strong> {new Date(new Date().getTime() + estimatedDays * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </p>
                   <p className="small">Based on {weightHistory.length >= 7 ? "recent trends" : "limited data"}</p>
                 </div>
@@ -297,7 +297,7 @@ export default function WeightTracker() {
 
       {recentTrendData.length > 0 && (
         <div className="weight-chart-section">
-          <h3>📈 Weight Trend</h3>
+          <h3>Weight Trend</h3>
           <ProgressChart
             data={recentTrendData}
             valueKey="weight"

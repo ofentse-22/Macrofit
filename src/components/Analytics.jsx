@@ -199,7 +199,7 @@ export default function Analytics() {
         <div className="stats-grid">
           {data.stats.avgWeight > 0 && (
             <div className="stat-item">
-              <span className="stat-icon">⚖️</span>
+
               <span className="stat-label">Average Weight</span>
               <span className="stat-value">{data.stats.avgWeight} kg</span>
             </div>
@@ -212,17 +212,14 @@ export default function Analytics() {
             </div>
           )}
           <div className="stat-item">
-            <span className="stat-icon">🏋️</span>
             <span className="stat-label">Total Sets</span>
             <span className="stat-value">{data.stats.totalSets}</span>
           </div>
           <div className="stat-item">
-            <span className="stat-icon">📊</span>
             <span className="stat-label">Avg Sets/Workout</span>
             <span className="stat-value">{data.stats.avgSetsPerWorkout}</span>
           </div>
           <div className="stat-item">
-            <span className="stat-icon">✅</span>
             <span className="stat-label">Completion Rate</span>
             <span className="stat-value">{data.stats.completionRate}%</span>
           </div>
@@ -317,7 +314,6 @@ export default function Analytics() {
         <h3>Insights & Recommendations</h3>
         <div className="insights-grid">
           <div className="insight-card">
-            <span className="insight-icon">💡</span>
             <h4>Consistency</h4>
             <p>
               {data.stats.completionRate >= 80
@@ -327,7 +323,6 @@ export default function Analytics() {
           </div>
 
           <div className="insight-card">
-            <span className="insight-icon">📈</span>
             <h4>Progress</h4>
             <p>
               {data.stats.avgSetsPerWorkout > 15
@@ -337,7 +332,6 @@ export default function Analytics() {
           </div>
 
           <div className="insight-card">
-            <span className="insight-icon">🎯</span>
             <h4>Nutrition</h4>
             <p>
               {data.stats.avgCalories > 2000 && data.stats.avgCalories < 2500

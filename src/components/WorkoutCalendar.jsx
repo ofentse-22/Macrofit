@@ -85,7 +85,7 @@ export default function WorkoutCalendar() {
   return (
     <div className="workout-calendar-container">
       <div className="calendar-header">
-        <h2>📅 Workout Calendar</h2>
+        <h2>Workout Calendar</h2>
         <p>Track your workout consistency</p>
       </div>
 
