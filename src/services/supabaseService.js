@@ -1,5 +1,7 @@
 import { supabase } from '../supabaseClient';
 
+const isMissingTableError = (error) => error?.code === 'PGRST205' || /could not find the table/i.test(error?.message || '');
+
 // ==================== USER PROFILE SERVICES ====================
 
 export const userService = {
@@ -14,11 +16,19 @@ export const userService = {
       .eq('id', user.id)
       .single();
 
-    if (error) {
-      console.error('Error fetching profile:', error);
-      return null;
+    if (!error) return { ...data, ...(user.user_metadata?.profile || {}) };
+
+    // The profile table is optional while an app is being set up. Keep profile
+    // details safely attached to the authenticated account until the SQL schema
+    // has been applied, instead of making the whole profile screen fail.
+    if (isMissingTableError(error) || /user_profiles/i.test(error.message || '')) {
+      return user.user_metadata?.profile || {
+        full_name: user.user_metadata?.full_name || '',
+        ...user.user_metadata?.profile,
+      };
     }
-    return data;
+    console.error('Error fetching profile:', error);
+    return null;
   },
 
   // Create or update user profile
@@ -26,18 +36,29 @@ export const userService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
+    const tableProfile = Object.fromEntries(Object.entries(profileData).filter(([key]) => [
+      'full_name', 'age', 'gender', 'height_cm', 'weight_kg', 'experience_level',
+    ].includes(key)));
+
     const { data, error } = await supabase
       .from('user_profiles')
       .upsert({
         id: user.id,
-        ...profileData,
+        ...tableProfile,
         updated_at: new Date(),
       })
       .select()
       .single();
 
-    if (error) throw new Error(`Error updating profile: ${error.message}`);
-    return data;
+    if (error && !isMissingTableError(error) && !/user_profiles/i.test(error.message || '')) {
+      throw new Error(`Error updating profile: ${error.message}`);
+    }
+
+    const { data: authData, error: authError } = await supabase.auth.updateUser({
+      data: { ...user.user_metadata, profile: { ...(user.user_metadata?.profile || {}), ...profileData } },
+    });
+    if (authError) throw new Error(`Error updating profile: ${authError.message}`);
+    return { ...data, ...(authData.user?.user_metadata?.profile || profileData) };
   },
 
   // Get user settings
@@ -221,6 +242,7 @@ export const workoutService = {
         updated_at: new Date(),
       })
       .eq('id', id)
+      .eq('user_id', user.id)
       .select();
 
     if (error) throw new Error(`Error completing set: ${error.message}`);
@@ -445,17 +467,31 @@ export const weightService = {
 
     const { data, error } = await supabase
       .from('weight_logs')
-      .insert([{
+      .upsert({
         user_id: user.id,
         weight_kg: weight,
         weight_date: date,
         notes,
         created_at: new Date(),
-      }])
+      }, { onConflict: 'user_id,weight_date' })
       .select();
 
     if (error) throw new Error(`Error adding weight log: ${error.message}`);
     return data?.[0];
+  },
+
+  async deleteLog(id) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+    const { error } = await supabase.from('weight_logs').delete().eq('id', id).eq('user_id', user.id);
+    if (error) throw new Error(`Error deleting weight log: ${error.message}`);
+  },
+
+  async deleteAll() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+    const { error } = await supabase.from('weight_logs').delete().eq('user_id', user.id);
+    if (error) throw new Error(`Error clearing weight logs: ${error.message}`);
   },
 
   // Get latest weight
@@ -510,6 +546,9 @@ export const bodyCompositionService = {
       .order('measurement_date', { ascending: true });
 
     if (error) {
+      if (isMissingTableError(error)) {
+        return (user.user_metadata?.body_composition_logs || []).filter((log) => log.measurement_date >= startDate && log.measurement_date <= endDate);
+      }
       console.error('Error fetching body composition logs:', error);
       return [];
     }
@@ -530,8 +569,16 @@ export const bodyCompositionService = {
       }])
       .select();
 
-    if (error) throw new Error(`Error adding body composition log: ${error.message}`);
-    return result?.[0];
+    if (!error) return result?.[0];
+    if (!isMissingTableError(error)) throw new Error(`Error adding body composition log: ${error.message}`);
+
+    const entry = { id: crypto.randomUUID(), ...data, created_at: new Date().toISOString() };
+    const existing = user.user_metadata?.body_composition_logs || [];
+    const { data: authData, error: authError } = await supabase.auth.updateUser({
+      data: { ...user.user_metadata, body_composition_logs: [entry, ...existing].slice(0, 100) },
+    });
+    if (authError) throw new Error(`Error adding body composition log: ${authError.message}`);
+    return authData.user?.user_metadata?.body_composition_logs?.[0] || entry;
   },
 
   // Get latest measurement
@@ -551,6 +598,13 @@ export const bodyCompositionService = {
       console.error('Error fetching latest measurement:', error);
     }
     return data || null;
+  },
+
+  async deleteLog(id) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+    const { error } = await supabase.from('body_composition_logs').delete().eq('id', id).eq('user_id', user.id);
+    if (error) throw new Error(`Error deleting body composition log: ${error.message}`);
   },
 };
 

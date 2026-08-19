@@ -39,7 +39,7 @@ export default function ProgressiveOverload() {
           progressMap[exercise.name] = [];
         }
         progressMap[exercise.name].push({
-          weight: exercise.weight || 0,
+          weight: Number(exercise.weight_kg) || 0,
           reps: exercise.reps,
           sets: exercise.sets,
           date: new Date(exercise.created_at).toLocaleDateString("en-US", {

@@ -1,8 +1,4 @@
--- ==================== FITTRACK DATABASE SCHEMA ====================
--- This schema handles all user data with proper relationships and RLS
 
--- ==================== USER PROFILE ====================
--- Extends Supabase auth.users with additional profile data
 CREATE TABLE IF NOT EXISTS user_profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   full_name TEXT,

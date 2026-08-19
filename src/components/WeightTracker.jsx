@@ -1,13 +1,6 @@
 import { useState, useEffect } from "react";
 import "./WeightTracker.css";
-
-function getDataSaved(key) {
-  try {
-    return JSON.parse(localStorage.getItem(key) || "[]");
-  } catch {
-    return [];
-  }
-}
+import { weightService } from "../services/supabaseService";
 
 function getTodayDate() {
   const today = new Date();
@@ -60,9 +53,7 @@ function ProgressChart({ data, valueKey, labelKey, color = "#60a5fa" }) {
 }
 
 export default function WeightTracker() {
-  const [weightHistory, setWeightHistory] = useState(() => {
-    return getDataSaved("weightHistory");
-  });
+  const [weightHistory, setWeightHistory] = useState([]);
 
   const [weightGoals, setWeightGoals] = useState(() => {
     try {
@@ -76,6 +67,13 @@ export default function WeightTracker() {
   const [newWeight, setNewWeight] = useState("");
   const [showGoalForm, setShowGoalForm] = useState(false);
   const [goalForm, setGoalForm] = useState(weightGoals);
+
+  const loadWeightHistory = async () => {
+    const logs = await weightService.getLogsForRange("2000-01-01", getTodayDate());
+    setWeightHistory(logs.slice().reverse().map((log) => ({ id: log.id, date: log.weight_date, weight: Number(log.weight_kg), addedAt: log.created_at })));
+  };
+
+  useEffect(() => { loadWeightHistory(); }, []);
 
   const today = getTodayDate();
   const todayEntry = weightHistory.find((entry) => entry.date === today);
@@ -121,23 +119,16 @@ export default function WeightTracker() {
     }
   }
 
-  const addWeight = (e) => {
+  const addWeight = async (e) => {
     e.preventDefault();
     if (!newWeight) return;
 
-    const newEntry = {
-      date: today,
-      weight: Number(newWeight),
-      addedAt: new Date().toISOString(),
-    };
-
-    const updated = weightHistory.filter((entry) => entry.date !== today);
-    const newHistory = [newEntry, ...updated];
-
-    localStorage.setItem("weightHistory", JSON.stringify(newHistory));
-    setWeightHistory(newHistory);
-    setNewWeight("");
-    setShowWeightForm(false);
+    try {
+      await weightService.addLog(Number(newWeight), today);
+      await loadWeightHistory();
+      setNewWeight("");
+      setShowWeightForm(false);
+    } catch (saveError) { alert(saveError.message || "Unable to save weight. Please log in and try again."); }
   };
 
   const saveWeightGoals = (e) => {
@@ -151,17 +142,14 @@ export default function WeightTracker() {
     setShowGoalForm(false);
   };
 
-  const deleteEntry = (date) => {
+  const deleteEntry = async (id) => {
     if (!window.confirm("Delete this weight entry?")) return;
-    const updated = weightHistory.filter((entry) => entry.date !== date);
-    localStorage.setItem("weightHistory", JSON.stringify(updated));
-    setWeightHistory(updated);
+    try { await weightService.deleteLog(id); await loadWeightHistory(); } catch (deleteError) { alert(deleteError.message || "Unable to delete weight entry."); }
   };
 
-  const clearAll = () => {
+  const clearAll = async () => {
     if (!window.confirm("Clear all weight history? This cannot be undone.")) return;
-    localStorage.setItem("weightHistory", JSON.stringify([]));
-    setWeightHistory([]);
+    try { await weightService.deleteAll(); setWeightHistory([]); } catch (clearError) { alert(clearError.message || "Unable to clear weight history."); }
   };
 
   const recentTrendData = weightHistory.slice(0, 10).reverse();
@@ -369,7 +357,7 @@ export default function WeightTracker() {
                     </span>
                     <span className="col-action">
                       <button
-                        onClick={() => deleteEntry(entry.date)}
+                        onClick={() => deleteEntry(entry.id)}
                         className="btn-remove"
                         aria-label="Delete entry"
                       >

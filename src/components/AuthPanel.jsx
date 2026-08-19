@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
+import UserProfile from "./UserProfile";
 
 export default function AuthPanel() {
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [signupProfile, setSignupProfile] = useState({ gender: "", age: "", height_cm: "", weight_kg: "" });
   const [user, setUser] = useState(null);
   const [message, setMessage] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -39,7 +41,8 @@ export default function AuthPanel() {
     setIsSubmitting(true);
     try {
       if (mode === "signup") {
-        const { data, error } = await supabase.auth.signUp({ email: cleanEmail, password, options: { data: { full_name: fullName.trim() } } });
+        const profile = { gender: signupProfile.gender || null, age: Number(signupProfile.age) || null, height_cm: Number(signupProfile.height_cm) || null, weight_kg: Number(signupProfile.weight_kg) || null };
+        const { data, error } = await supabase.auth.signUp({ email: cleanEmail, password, options: { data: { full_name: fullName.trim(), profile } } });
         if (error) throw error;
         if (data.session && data.user) {
           setUser(data.user);
@@ -73,7 +76,7 @@ export default function AuthPanel() {
     return <section className="auth-panel" aria-labelledby="account-heading"><div className="auth-shell">
       <div className="auth-hero"><span className="auth-badge">Account active</span><h2 id="account-heading">Welcome back, {user.user_metadata?.full_name || "Athlete"}.</h2><p>Your workout progress and account details are ready whenever you are.</p><div className="auth-highlights"><div className="auth-highlight"><span>✓</span><p>Secure sign-in</p></div><div className="auth-highlight"><span>↗</span><p>Track progress</p></div></div></div>
       <div className="auth-card-grid"><div className="auth-panel-card"><h3>Account details</h3><div className="profile-info"><div className="profile-row"><span>Name</span><strong>{user.user_metadata?.full_name || "Not set"}</strong></div><div className="profile-row"><span>Email</span><strong>{user.email}</strong></div></div></div><div className="auth-panel-card accent-card"><h3>Session</h3><p className="auth-session-copy">You are securely signed in on this device.</p><button type="button" onClick={logout} disabled={isSubmitting}>{isSubmitting ? "Logging out…" : "Log out"}</button></div></div>
-    </div></section>;
+    </div><UserProfile /></section>;
   }
 
   return <section className="auth-panel" aria-labelledby="auth-heading"><div className="auth-shell">

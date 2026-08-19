@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
+import { userService } from '../services/supabaseService';
 import './UserProfile.css';
 
 export default function UserProfile() {
@@ -21,29 +22,23 @@ export default function UserProfile() {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    loadUserProfile();
-  }, []);
-
-  const loadUserProfile = async () => {
+    const loadUserProfile = async () => {
     try {
       const { data } = await supabase.auth.getUser();
       setUser(data.user);
 
       if (data.user) {
-        const { data: profileData } = await supabase
-          .from('user_profiles')
-          .select('*')
-          .eq('user_id', data.user.id)
-          .single();
+        const profileData = await userService.getProfile();
 
         if (profileData) {
-          setProfile(profileData);
-        } else {
-          // Load from localStorage as fallback
-          const savedGoals = JSON.parse(localStorage.getItem('fitGoals') || '{}');
-          setProfile(prev => ({
-            ...prev,
-            fitnessGoal: savedGoals.goal || prev.fitnessGoal,
+          setProfile((current) => ({
+            ...current,
+            ...profileData,
+            experience: profileData.experience_level || profileData.experience || current.experience,
+            fitnessGoal: profileData.fitness_goal || profileData.fitnessGoal || current.fitnessGoal,
+            activityLevel: profileData.activity_level || profileData.activityLevel || current.activityLevel,
+            notifications: profileData.notifications_enabled ?? profileData.notifications ?? current.notifications,
+            restTimerDefault: profileData.rest_timer_default || profileData.restTimerDefault || current.restTimerDefault,
           }));
         }
       }
@@ -53,7 +48,9 @@ export default function UserProfile() {
     } finally {
       setLoading(false);
     }
-  };
+    };
+    loadUserProfile();
+  }, []);
 
   const saveProfile = async () => {
     setSaving(true);
@@ -66,32 +63,18 @@ export default function UserProfile() {
         return;
       }
 
-      const { error } = await supabase
-        .from('user_profiles')
-        .upsert({
-          user_id: user.id,
-          age: profile.age || null,
-          gender: profile.gender || null,
-          height_cm: profile.height_cm || null,
-          weight_kg: profile.weight_kg || null,
-          experience: profile.experience,
-          fitnessGoal: profile.fitnessGoal,
-          activityLevel: profile.activityLevel,
-          units: profile.units,
-          notifications: profile.notifications,
-          restTimerDefault: profile.restTimerDefault,
-          updated_at: new Date().toISOString(),
-        });
-
-      if (error) throw error;
-
-      // Also save to localStorage as fallback
-      localStorage.setItem('fitGoals', JSON.stringify({ goal: profile.fitnessGoal }));
-      localStorage.setItem('userPreferences', JSON.stringify({
+      await userService.upsertProfile({
+        age: Number(profile.age) || null,
+        gender: profile.gender || null,
+        height_cm: Number(profile.height_cm) || null,
+        weight_kg: Number(profile.weight_kg) || null,
+        experience_level: profile.experience,
+        fitness_goal: profile.fitnessGoal,
+        activity_level: profile.activityLevel,
         units: profile.units,
-        notifications: profile.notifications,
-        restTimerDefault: profile.restTimerDefault,
-      }));
+        notifications_enabled: profile.notifications,
+        rest_timer_default: profile.restTimerDefault,
+      });
 
       setMessage('Profile saved successfully!');
       setTimeout(() => setMessage(''), 3000);

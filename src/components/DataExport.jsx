@@ -1,15 +1,6 @@
-const getLocalData = (key) => {
-  try { 
-    return JSON.parse(localStorage.getItem(key) || "[]"); 
-  } catch { 
-    return []; 
-  }
-};
-
 export default function DataExport() {
-  const exportWorkouts = () => {
-    const workouts = getLocalData("workouts");
-    const user = JSON.parse(localStorage.getItem("fitTrackUser") || "{}");
+  const exportWorkouts = async () => {
+    const workouts = await workoutService.getWorkouts();
 
     const rows = [
       ["Name", "Category", "Sets", "Reps", "Weight (kg)", "Completed Sets", "Rest Time", "Date"]
@@ -21,18 +12,19 @@ export default function DataExport() {
         w.category,
         w.sets,
         w.reps,
-        w.weight,
-        w.completedSets,
-        w.restTime,
-        new Date(w.createdAt).toLocaleDateString()
+        w.weight_kg ?? '',
+        w.completed_sets ?? 0,
+        w.rest_time_seconds ?? '',
+        new Date(w.created_at).toLocaleDateString()
       ]);
     });
 
     const csv = rows.map(row => row.join(",")).join("\n");
     const link = document.createElement("a");
     link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-    link.download = `fittrack-workout-${user.fullName || 'user'}.csv`;
+    link.download = 'fittrack-workouts.csv';
     link.click();
+    URL.revokeObjectURL(link.href);
   };
 
   return (
@@ -52,3 +44,4 @@ export default function DataExport() {
     </section>
   );
 }
+import { workoutService } from '../services/supabaseService';

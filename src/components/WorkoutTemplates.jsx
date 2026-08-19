@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "../supabaseClient";
 import exerciseLibrary from "../data/exercises";
+import { workoutService } from "../services/supabaseService";
 
 const predefinedTemplates = [
   {
@@ -29,6 +30,7 @@ const predefinedTemplates = [
 export default function WorkoutTemplates() {
   const [customName, setCustomName] = useState("");
   const [customExercises, setCustomExercises] = useState([]);
+  const [selectedExercise, setSelectedExercise] = useState("");
 
   const loadTemplate = async (template) => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -45,8 +47,8 @@ export default function WorkoutTemplates() {
         category: ex ? ex.category : "",
         sets: 4,
         reps: 8,
-        weight: 0,
-        rest_time: 60,
+        weight_kg: null,
+        rest_time_seconds: 60,
         completed_sets: 0
       };
     });
@@ -63,16 +65,25 @@ export default function WorkoutTemplates() {
     }
   };
 
-  const createCustomTemplate = () => {
+  const addCustomExercise = () => {
+    if (selectedExercise && !customExercises.includes(selectedExercise)) {
+      setCustomExercises((current) => [...current, selectedExercise]);
+      setSelectedExercise("");
+    }
+  };
+
+  const createCustomTemplate = async () => {
     if (!customName || customExercises.length === 0) {
       alert("Please enter template name and select exercises");
       return;
     }
 
-    // For now just alert - you can expand this later
-    alert(`Custom template "${customName}" created! (Saved locally for now)`);
-    setCustomName("");
-    setCustomExercises([]);
+    try {
+      await workoutService.saveTemplate({ name: customName.trim(), exercises: customExercises.map((name) => ({ name, sets: 3, reps: 10 })), description: "Custom workout template", is_public: false });
+      alert(`Template "${customName}" saved to your account.`);
+      setCustomName("");
+      setCustomExercises([]);
+    } catch (error) { alert(error.message || "Unable to save template. Please log in and try again."); }
   };
 
   return (
@@ -107,6 +118,12 @@ export default function WorkoutTemplates() {
           value={customName}
           onChange={(e) => setCustomName(e.target.value)}
         />
+        <select value={selectedExercise} onChange={(e) => setSelectedExercise(e.target.value)}>
+          <option value="">Choose an exercise</option>
+          {exerciseLibrary.map((exercise) => <option key={exercise.name} value={exercise.name}>{exercise.name}</option>)}
+        </select>
+        <button type="button" onClick={addCustomExercise} className="btn-create">Add Exercise</button>
+        {customExercises.length > 0 && <div className="template-exercises">{customExercises.map((name) => <button type="button" key={name} className="template-exercise" onClick={() => setCustomExercises((current) => current.filter((exercise) => exercise !== name))}>{name} ×</button>)}</div>}
         <button onClick={createCustomTemplate} className="btn-create">
           Create Template
         </button>

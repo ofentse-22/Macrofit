@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import './WorkoutGenerator.css';
 
 export default function WorkoutGenerator() {
@@ -12,6 +12,7 @@ export default function WorkoutGenerator() {
   });
   const [generatedPlan, setGeneratedPlan] = useState(null);
   const [savedPlans, setSavedPlans] = useState([]);
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
     const saved = JSON.parse(localStorage.getItem('workoutPlans') || '[]');
@@ -501,7 +502,8 @@ export default function WorkoutGenerator() {
   };
 
   return (
-    <div className="generator-container">
+      <div className="generator-container">
+      {message && <p className="form-message success" role="status">{message}</p>}
       {step === 1 && (
         <div className="generator-step">
           <div className="step-header">

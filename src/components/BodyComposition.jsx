@@ -1,5 +1,6 @@
 import { useState } from "react";
 import "./BMICalculator.css";
+import { bodyCompositionService, userService, weightService } from "../services/supabaseService";
 
 export default function BodyComposition() {
   const [gender, setGender] = useState("male");
@@ -173,18 +174,26 @@ export default function BodyComposition() {
 };
 
 
-  const saveResults = () => {
+  const saveResults = async () => {
     if (!results) return;
-
-    const history = JSON.parse(localStorage.getItem("bodyCompositionHistory") || "[]");
-    const newEntry = {
-      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      ...results,
-      timestamp: new Date().toISOString()
-    };
-
-    localStorage.setItem("bodyCompositionHistory", JSON.stringify([newEntry, ...history]));
-    alert("Body Composition saved successfully!");
+    try {
+      const measurementDate = new Date().toISOString().slice(0, 10);
+      const heightCm = unit === "in" ? Number(height) * 2.54 : Number(height);
+      await userService.upsertProfile({ age: Number(age), gender, height_cm: heightCm, weight_kg: Number(weight) });
+      await bodyCompositionService.addLog({
+        measurement_date: measurementDate,
+        weight_kg: Number(weight),
+        body_fat_percentage: Number(results.bodyFat),
+        muscle_mass_kg: Number(results.leanMass),
+        water_percentage: Number(results.waterPercent),
+      });
+      // Weight tracking is a useful extra record, but must not prevent an
+      // otherwise valid BMI/body-composition result from being saved.
+      try { await weightService.addLog(Number(weight), measurementDate); } catch (weightError) { console.warn("Weight log was not saved:", weightError); }
+      alert("Body composition saved to your account.");
+    } catch (saveError) {
+      alert(saveError.message || "Unable to save your results. Please log in and try again.");
+    }
   };
 
   const clear = () => {

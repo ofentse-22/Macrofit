@@ -72,12 +72,12 @@ export default function WorkoutTracker() {
       user_id: user.id,
       name: exerciseName,
       category,
-      image: selected?.image || null,
+      image_url: selected?.image || null,
       instructions: selected?.instructions || null,
       sets: parseInt(sets),
       reps: parseInt(reps),
-      weight: weight ? parseFloat(weight) : 0,
-      rest_time: parseInt(restTime),
+      weight_kg: weight ? parseFloat(weight) : null,
+      rest_time_seconds: parseInt(restTime),
       completed_sets: 0
     };
 
@@ -107,17 +107,18 @@ export default function WorkoutTracker() {
         name: exerciseName,
         sets: parseInt(sets),
         reps: parseInt(reps),
-        weight: weight ? parseFloat(weight) : 0,
-        rest_time: parseInt(restTime)
+        weight_kg: weight ? parseFloat(weight) : null,
+        rest_time_seconds: parseInt(restTime)
       })
-      .eq('id', editingId);
+      .eq('id', editingId)
+      .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
 
     if (error) alert("Error updating: " + error.message);
     else {
       alert("Exercise updated!");
       setExercises(exercises.map(ex => 
         ex.id === editingId 
-          ? { ...ex, name: exerciseName, sets: parseInt(sets), reps: parseInt(reps), weight: weight ? parseFloat(weight) : 0, rest_time: parseInt(restTime) }
+          ? { ...ex, name: exerciseName, sets: parseInt(sets), reps: parseInt(reps), weight_kg: weight ? parseFloat(weight) : null, rest_time_seconds: parseInt(restTime) }
           : ex
       ));
       setEditingId(null);
@@ -128,7 +129,8 @@ export default function WorkoutTracker() {
   const deleteExercise = async (id) => {
     if (!window.confirm("Delete this exercise?")) return;
 
-    const { error } = await supabase.from('workouts').delete().eq('id', id);
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase.from('workouts').delete().eq('id', id).eq('user_id', user?.id);
     if (error) alert("Error deleting: " + error.message);
     else {
       setExercises(exercises.filter(ex => ex.id !== id));
@@ -140,8 +142,8 @@ export default function WorkoutTracker() {
     setExerciseName(exercise.name);
     setSets(exercise.sets.toString());
     setReps(exercise.reps.toString());
-    setWeight(exercise.weight?.toString() || "");
-    setRestTime(exercise.rest_time?.toString() || "60");
+    setWeight(exercise.weight_kg?.toString() || "");
+    setRestTime(exercise.rest_time_seconds?.toString() || "60");
     setCategory(exercise.category);
   };
 
@@ -152,7 +154,8 @@ export default function WorkoutTracker() {
     const { error } = await supabase
       .from('workouts')
       .update({ completed_sets: exercise.completed_sets + 1 })
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
 
     if (error) console.error(error);
     else {
@@ -168,7 +171,8 @@ export default function WorkoutTracker() {
     const { error } = await supabase
       .from('workouts')
       .update({ completed_sets: 0 })
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
 
     if (error) console.error(error);
     else {
@@ -287,21 +291,20 @@ export default function WorkoutTracker() {
             exercises.map((exercise) => (
               <div key={exercise.id} className="exercise-item">
                 <div className="exercise-header">
-                  {exercise.image && (
+                  {exercise.image_url && (
                     <img
-                      src={exercise.image}
+                      src={exercise.image_url}
                       alt={exercise.name}
                       className="workout-image"
-                      onError={() => console.log("Image failed to load:", exercise.image)}
+                      onError={() => console.log("Image failed to load:", exercise.image_url)}
                     />
                   )}
                   <div className="exercise-info">
                     <h4>{exercise.name}</h4>
                     <div className="exercise-stats">
                       <span>{exercise.sets} sets × {exercise.reps} reps</span>
-                      {exercise.weight > 0 && <span>{exercise.weight} kg</span>}
-                      <span className="
-                      rest-badge">Rest: {exercise.rest_time}s</span>
+                      {exercise.weight_kg > 0 && <span>{exercise.weight_kg} kg</span>}
+                      <span className="rest-badge">Rest: {exercise.rest_time_seconds}s</span>
                     </div>
                   </div>
 
@@ -321,7 +324,7 @@ export default function WorkoutTracker() {
                 </div>
 
                 {exercise.completed_sets > 0 && exercise.completed_sets < exercise.sets && (
-                  <RestTimer restTime={exercise.rest_time} isActive={true} onComplete={() => {}} />
+                  <RestTimer restTime={exercise.rest_time_seconds} isActive={true} onComplete={() => {}} />
                 )}
 
                 <div className="exercise-controls">

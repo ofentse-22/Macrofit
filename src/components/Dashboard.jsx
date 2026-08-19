@@ -1,12 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-
-function getDataSaved(key) {
-  try {
-    return JSON.parse(localStorage.getItem(key) || "[]");
-  } catch {
-    return [];
-  }
-}
+import { bodyCompositionService, goalsService, nutritionService, userService, weightService, workoutService } from "../services/supabaseService";
 
 function calculateStreak(workouts) {
   if (!Array.isArray(workouts) || workouts.length === 0) return 0;
@@ -77,28 +70,13 @@ function ProgressChart({ data, valueKey, labelKey, color = "#60a5fa" }) {
 }
 
 export default function Dashboard() {
-  const [progressData] = useState(() => getDataSaved("fitnessHistory"));
-  const [workouts] = useState(() => getDataSaved("workouts"));
-  const [bodyCompositionHistory] = useState(() => getDataSaved("bodyCompositionHistory"));
-  const [workoutHistory] = useState(() => getDataSaved("workoutHistory"));
-  const [nutritionLog] = useState(() => getDataSaved("nutritionLog"));
-  const [weightHistory] = useState(() => getDataSaved("weightHistory"));
-  const [nutritionGoals] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem("nutritionGoals") || "{}");
-    } catch {
-      return {};
-    }
-  });
-  const [goals, setGoals] = useState(() => {
-    if (typeof window === "undefined") return { weight: "", strength: "" };
-
-    try {
-      return JSON.parse(localStorage.getItem("fitGoals") || "{}");
-    } catch {
-      return { weight: "", strength: "" };
-    }
-  });
+  const [workouts, setWorkouts] = useState([]);
+  const [bodyCompositionHistory, setBodyCompositionHistory] = useState([]);
+  const [nutritionLog, setNutritionLog] = useState([]);
+  const [weightHistory, setWeightHistory] = useState([]);
+  const [nutritionGoals, setNutritionGoals] = useState({});
+  const [profile, setProfile] = useState(null);
+  const [goals, setGoals] = useState({ weight: "", strength: "" });
   const [goalForm, setGoalForm] = useState({ weight: "", strength: "" });
   const [reminders, setReminders] = useState(() => {
     if (typeof window === "undefined") return [];
@@ -111,6 +89,32 @@ export default function Dashboard() {
   });
   const [reminderForm, setReminderForm] = useState({ title: "", minutes: "30" });
   const reminderTimers = useRef([]);
+
+  useEffect(() => {
+    let active = true;
+    const today = new Date().toISOString().slice(0, 10);
+    const startDate = new Date();
+    startDate.setFullYear(startDate.getFullYear() - 1);
+    Promise.all([
+      workoutService.getWorkouts(),
+      bodyCompositionService.getLogsForRange(startDate.toISOString().slice(0, 10), today),
+      weightService.getLogsForRange(startDate.toISOString().slice(0, 10), today),
+      nutritionService.getLogsForDate(today),
+      nutritionService.getGoals(),
+      goalsService.getGoal(),
+      userService.getProfile(),
+    ]).then(([savedWorkouts, bodyLogs, weightLogs, meals, savedNutritionGoals, savedGoal, savedProfile]) => {
+      if (!active) return;
+      setWorkouts(savedWorkouts);
+      setBodyCompositionHistory(bodyLogs);
+      setWeightHistory(weightLogs);
+      setNutritionLog(meals);
+      setNutritionGoals(savedNutritionGoals || {});
+      setProfile(savedProfile);
+      setGoals({ weight: savedGoal?.target_weight_kg ?? "", strength: savedGoal?.target_strength_kg ?? "" });
+    });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -148,39 +152,42 @@ export default function Dashboard() {
     };
   }, [reminders]);
 
-  const latestBmi = progressData.length > 0 ? progressData[progressData.length - 1].bmi.toFixed(1) : "--";
+  const progressData = bodyCompositionHistory.map((entry) => {
+    const heightM = Number(profile?.height_cm) / 100;
+    return { date: entry.measurement_date, bmi: heightM ? Number(entry.weight_kg) / (heightM * heightM) : 0 };
+  });
+  const latestBmi = progressData.length > 0 && progressData[progressData.length - 1].bmi > 0 ? progressData[progressData.length - 1].bmi.toFixed(1) : "--";
   const totalExercises = workouts.length;
-  const completedSets = workouts.reduce((sum, w) => sum + (w.completedSets || 0), 0);
+  const completedSets = workouts.reduce((sum, w) => sum + (w.completed_sets || 0), 0);
   const totalSets = workouts.reduce((sum, w) => sum + (w.sets || 0), 0);
   const completionRate = totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0;
   const currentStreak = calculateStreak(workouts);
-  const recentBodyHistory = bodyCompositionHistory.slice(0, 3);
+  const recentBodyHistory = bodyCompositionHistory.slice(-3).reverse();
   const bodyFatTrend = bodyCompositionHistory
+    .slice(-6)
+    .map((entry) => ({ label: entry.measurement_date || "Saved", bodyFat: Number(entry.body_fat_percentage) || 0 }));
+  const workoutTrend = workouts
     .slice(0, 6)
     .reverse()
-    .map((entry) => ({ label: entry.date || "Saved", bodyFat: Number(entry.bodyFat) || 0 }));
-  const workoutTrend = workoutHistory
-    .slice(0, 6)
-    .reverse()
-    .map((entry) => ({ label: entry.title || "Workout", completedRatio: Number(entry.completedRatio) || 0 }));
+    .map((entry) => ({ label: entry.name || "Workout", completedRatio: entry.sets ? Math.round((entry.completed_sets || 0) / entry.sets * 100) : 0 }));
 
   // Nutrition data for today
   const today = new Date().toISOString().split("T")[0];
-  const todayNutrition = nutritionLog.filter((meal) => meal.date === today);
+  const todayNutrition = nutritionLog;
   const nutritionTotals = todayNutrition.reduce(
     (acc, meal) => ({
       calories: acc.calories + (meal.calories || 0),
-      protein: acc.protein + (meal.protein || 0),
+      protein: acc.protein + (meal.protein_g || 0),
     }),
     { calories: 0, protein: 0 }
   );
-  const nutritionGoal = Number(nutritionGoals.calories) || 2500;
+  const nutritionGoal = Number(nutritionGoals.daily_calories) || 2500;
   const caloriesRemaining = Math.max(0, nutritionGoal - nutritionTotals.calories);
 
   // Weight data for today
-  const todayWeight = weightHistory.find((entry) => entry.date === today);
-  const previousWeight = weightHistory.length > 1 ? weightHistory[1].weight : null;
-  const weightChange = previousWeight && todayWeight ? (todayWeight.weight - previousWeight).toFixed(1) : null;
+  const todayWeight = weightHistory.find((entry) => entry.weight_date === today);
+  const previousWeight = weightHistory.length > 1 ? weightHistory[weightHistory.length - 2].weight_kg : null;
+  const weightChange = previousWeight && todayWeight ? (todayWeight.weight_kg - previousWeight).toFixed(1) : null;
 
   const shareProgress = async () => {
     const text = `FitTrack Progress: ${currentStreak} day streak | BMI: ${latestBmi} | ${totalExercises} exercises tracked`;
@@ -193,15 +200,17 @@ export default function Dashboard() {
     }
   };
 
-  const saveGoal = (event) => {
+  const saveGoal = async (event) => {
     event.preventDefault();
     const nextGoals = {
       weight: goalForm.weight || goals.weight || "",
       strength: goalForm.strength || goals.strength || "",
-      updatedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }),
     };
-    setGoals(nextGoals);
-    setGoalForm({ weight: "", strength: "" });
+    try {
+      await goalsService.upsertGoal({ goal_type: "maintenance", target_weight_kg: Number(nextGoals.weight) || null, target_strength_kg: Number(nextGoals.strength) || null });
+      setGoals(nextGoals);
+      setGoalForm({ weight: "", strength: "" });
+    } catch (saveError) { alert(saveError.message || "Unable to save goal."); }
   };
 
   const saveReminder = (event) => {
@@ -275,7 +284,7 @@ export default function Dashboard() {
             <div className="summary-stats">
               <div className="summary-stat">
                 <span className="summary-label">Today</span>
-                <span className="summary-value">{todayWeight.weight.toFixed(1)}</span>
+                <span className="summary-value">{Number(todayWeight.weight_kg).toFixed(1)}</span>
                 <span className="summary-unit">kg</span>
               </div>
               {weightChange && (
@@ -290,7 +299,7 @@ export default function Dashboard() {
               {previousWeight && (
                 <div className="summary-stat">
                   <span className="summary-label">Previous</span>
-                  <span className="summary-value">{previousWeight.toFixed(1)}</span>
+                  <span className="summary-value">{Number(previousWeight).toFixed(1)}</span>
                   <span className="summary-unit">kg</span>
                 </div>
               )}
@@ -333,9 +342,9 @@ export default function Dashboard() {
         {recentBodyHistory.length > 0 ? (
           <div className="history-list">
             {recentBodyHistory.map((entry, index) => (
-              <div key={entry.timestamp || index} className="history-item">
-                <strong>{entry.date}</strong>
-                <span>BMI {entry.bmi} • Body Fat {entry.bodyFat}%</span>
+              <div key={entry.id || index} className="history-item">
+                <strong>{entry.measurement_date}</strong>
+                <span>BMI {Number(profile?.height_cm) > 0 ? (Number(entry.weight_kg) / ((Number(profile.height_cm) / 100) ** 2)).toFixed(1) : "--"} • Body Fat {entry.body_fat_percentage}%</span>
               </div>
             ))}
           </div>

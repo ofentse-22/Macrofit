@@ -15,14 +15,6 @@ export default function PersonalRecords() {
         return;
       }
 
-      // Load current PRs from localStorage
-      let savedPRs = {};
-      try {
-        savedPRs = JSON.parse(localStorage.getItem("personalRecords") || "{}");
-      } catch {
-        savedPRs = {};
-      }
-
       const { data, error } = await supabase
         .from("workouts")
         .select("*")
@@ -40,7 +32,7 @@ export default function PersonalRecords() {
       const detectedNewPRs = [];
 
       data?.forEach((exercise) => {
-        const weight = exercise.weight || 0;
+        const weight = Number(exercise.weight_kg) || 0;
         if (weight > 0) {
           if (!exerciseMaxes[exercise.name]) {
             exerciseMaxes[exercise.name] = {
@@ -68,17 +60,7 @@ export default function PersonalRecords() {
               fullDate: new Date(exercise.created_at),
             };
 
-            // Check if this is a new PR
-            const savedPR = savedPRs[exercise.name];
-            if (!savedPR || weight > savedPR.weight) {
-              detectedNewPRs.push({
-                name: exercise.name,
-                previous: savedPR?.weight || previousPR.weight,
-                current: weight,
-                increase: (weight - (savedPR?.weight || previousPR.weight)).toFixed(1),
-                date: exerciseMaxes[exercise.name].date,
-              });
-            }
+            detectedNewPRs.push({ name: exercise.name, previous: previousPR.weight, current: weight, increase: (weight - previousPR.weight).toFixed(1), date: exerciseMaxes[exercise.name].date });
           }
         }
       });
@@ -93,18 +75,6 @@ export default function PersonalRecords() {
 
       setRecords(recordsArray);
       setNewPRs(detectedNewPRs);
-
-      // Save PRs to localStorage
-      if (detectedNewPRs.length > 0) {
-        const updatedPRs = { ...savedPRs };
-        recordsArray.forEach((record) => {
-          updatedPRs[record.name] = {
-            weight: record.weight,
-            date: record.date,
-          };
-        });
-        localStorage.setItem("personalRecords", JSON.stringify(updatedPRs));
-      }
 
       setLoading(false);
     };

@@ -12,7 +12,6 @@ import WeightTracker from './components/WeightTracker';
 import ProgressiveOverload from './components/ProgressiveOverload';
 import PersonalRecords from './components/PersonalRecords';
 import WorkoutCalendar from './components/WorkoutCalendar';
-import UserProfile from './components/UserProfile';
 import WorkoutGenerator from './components/WorkoutGenerator';
 import Gamification from './components/Gamification';
 import Analytics from './components/Analytics';
@@ -39,8 +38,7 @@ function App() {
     ['dashboard', 'Dashboard'],
     ['workout', 'Workout'],
     ['history', 'History'],
-    ['progress', 'Progress'],
-    ['records', 'Records'],
+    ['progress', 'Progress & Records'],
     ['calendar', 'Calendar'],
     ['templates', 'Templates'],
     ['library', 'Exercise library'],
@@ -48,9 +46,7 @@ function App() {
     ['nutrition', 'Nutrition'],
     ['weight', 'Weight Tracker'],
     ['generator', 'Workout Generator'],
-    ['gamification', 'Achievements'],
     ['analytics', 'Analytics'],
-    ['profile', 'Profile'],
     ['account', 'Account'],
     ['export', 'Export'],
   ];
@@ -91,8 +87,7 @@ function App() {
         {activeTab === 'dashboard' && <Dashboard />}
         {activeTab === 'workout' && <WorkoutTracker />}
         {activeTab === 'history' && <WorkoutHistory />}
-        {activeTab === 'progress' && <ProgressiveOverload />}
-        {activeTab === 'records' && <PersonalRecords />}
+        {activeTab === 'progress' && <><ProgressiveOverload /><PersonalRecords /><Gamification /></>}
         {activeTab === 'calendar' && <WorkoutCalendar />}
         {activeTab === 'templates' && <WorkoutTemplates />}
         {activeTab === 'library' && <ExerciseLibrary />}
@@ -100,9 +95,7 @@ function App() {
         {activeTab === 'nutrition' && <NutritionTracker />}
         {activeTab === 'weight' && <WeightTracker />}
         {activeTab === 'generator' && <WorkoutGenerator />}
-        {activeTab === 'gamification' && <Gamification />}
         {activeTab === 'analytics' && <Analytics />}
-        {activeTab === 'profile' && <UserProfile />}
         {activeTab === 'account' && <AuthPanel />}
         {activeTab === 'export' && <DataExport />}
       </main>

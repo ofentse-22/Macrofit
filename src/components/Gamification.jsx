@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { workoutService } from '../services/supabaseService';
 import './Gamification.css';
 
 export default function Gamification() {
@@ -14,10 +15,10 @@ export default function Gamification() {
     loadGamificationData();
   }, []);
 
-  const loadGamificationData = () => {
+  const loadGamificationData = async () => {
     try {
-      const workoutHistory = JSON.parse(localStorage.getItem('workoutHistory') || '[]');
-      const achievements = JSON.parse(localStorage.getItem('achievements') || '[]');
+      const workouts = await workoutService.getWorkouts();
+      const workoutHistory = workouts.map((workout) => ({ ...workout, completedAt: workout.created_at }));
 
       // Calculate streaks
       const sortedDates = workoutHistory
