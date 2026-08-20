@@ -181,6 +181,61 @@ const exercises = [
       category: "Back",
       image: "/FitPic/Barbell Upright_Row.jpg",
       instructions: "Bend at hips, hold a barbell with both hands, and pull the weight towards your torso"
+    },
+    {
+      name: "Dumbbell Upright Row",
+      category: "Back",
+      image: "/FitPic/Dumbbell_Upright_Row.jpg",
+      instructions: "Bend at hips, hold dumbbells with both hands, and pull the weights towards your torso"
+    }, 
+    {
+      name: "Barbell Shrug",
+      category: "Back",
+      image: "/FitPic/Barbell_Shrug.jpg",
+      instructions: "Stand with feet hip-width apart, hold a barbell with both hands, and shrug your shoulders upward"
+    },
+    { 
+      name: "Dumbbell Shrug",
+      category: "Back",
+      image: "/FitPic/Dumbell_Shrug.jpg",
+      instructions: "Hold dumbbells at your sides, shrug your shoulders upward, and lower them back down"
+    },
+    {
+      name: "Alternate Bicep Curls",
+      category: "Arms",
+      image: "/FitPic/alternate_bicep_curls.jpg",
+      instructions: "Hold dumbbells at your sides, curl one dumbbell upward while keeping the other arm stationary"
+    },
+    {
+      name: "DB Concentration Curl",
+      category: "Arms",
+      image: "/FitPic/DB_concentration_curl.jpg",
+      instructions: "Sit on a bench or chair, hold a dumbbell with one hand, and curl it towards your shoulder"
+
+    },
+    {
+      name: "Seated Double Concentration Curl",
+      category: "Arms",
+      image: "/FitPic/DB_Seated_Double_Concentration_Curl.jpg",
+      instructions: "Sit on a bench or chair, hold a dumbbell in each hand, and curl them towards your shoulders simultaneously"
+    },
+    {
+      name: "Seated EZ Bar Curls",
+      category: "Arms",
+      image: "/FitPic/Seated_EZ_Bar_Curls.jpg",
+      instructions: "Sit on a bench or chair, hold a EZ bar in both hands, and curl them towards your shoulders simutaneously"
+    },
+    {
+      name: "EZ Bar Curls",
+      category: "Arms",
+      image: " /FitPic/EZ_Bar_Curl.jpg",
+      instructions: "Stand holding the EZ bar with both hands, and curl them towards your shoulders"
+    },
+    { 
+      name: "Dumbel Wrist Curl",
+      category: "Arms",
+      image: "/FitPic/Dumbell_Wrist_Curl.jpg",
+      instructions: "Sit on a bench or chair, hold a dumbbell in each hand, and curl your wrists upward"
     }
   ];
 

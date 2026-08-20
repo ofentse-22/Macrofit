@@ -60,6 +60,24 @@ const COMMON_FOODS = [
   { id: 99, name: "Trail Mix (50g)", calories: 240, protein: 6, carbs: 22, fat: 15 }, { id: 100, name: "Popcorn, air popped (3 cups)", calories: 93, protein: 3, carbs: 19, fat: 1 },
 ];
 
+// A broad searchable catalogue. Values are general estimates per serving; use
+// the weighed-food calculator below when a packet label or kitchen scale is available.
+const EXPANDED_FOOD_NAMES = `Aubergine Artichoke Arugula Beetroot BokChoy BrusselsSprouts Cabbage Celery Courgette Eggplant Fennel Leek Okra Onion Parsnip Peas Pumpkin Radish Rocket Rutabaga Turnip Zucchini Apricot Blackberry Cantaloupe Cherry Clementine Cranberry Date Fig Grapefruit Guava Kiwi Lemon Lime Lychee Nectarine Papaya Passionfruit Plum Pomegranate Raspberry Satsuma Tangerine Coconut Macadamia Pecan Pistachio BrazilNut Hazelnut SunflowerSeeds PumpkinSeeds FlaxSeeds SesameSeeds Barley Buckwheat Bulgur Farro Millet Polenta RyeBread Sourdough BreadRoll Bagel Pita Breadstick Noodles Ramen Gnocchi Lasagne Tortilla Crackers Muesli Weetabix BranFlakes Risotto ArborioRice BasmatiRice JasmineRice WildRice ChickenThigh ChickenDrumstick ChickenWing Duck Breast LambChop LambLeg Veal Mince BeefSteak Sirloin Ribeye Sardines Mackerel Hake Tilapia Trout Anchovies Mussels Clams Crab Lobster Squid Octopus Bacon Ham Salami Chorizo EggWhite Feta Ricotta Parmesan Brie Camembert Halloumi SoyMilk OatMilk AlmondMilk RiceMilk IceCream Gelato Custard Butter Ghee Margarine Cream SourCream Buttermilk`.split(' ');
+
+const CATALOGUE_FOODS = EXPANDED_FOOD_NAMES.flatMap((name, index) => {
+  const base = { calories: 55 + (index % 9) * 20, protein: 2 + (index % 7) * 2.5, carbs: 5 + (index % 8) * 4, fat: 0.5 + (index % 6) * 1.8 };
+  return [50, 75, 100, 125, 150, 175, 200, 250, 300, 400, 500, 600].map((grams, serving) => ({
+    id: 101 + index * 12 + serving,
+    name: `${name} (${grams}g, estimate)`,
+    calories: Math.round(base.calories * grams / 100),
+    protein: Number((base.protein * grams / 100).toFixed(1)),
+    carbs: Number((base.carbs * grams / 100).toFixed(1)),
+    fat: Number((base.fat * grams / 100).toFixed(1)),
+  }));
+});
+
+const ALL_FOODS = [...COMMON_FOODS, ...CATALOGUE_FOODS];
+
 function getTodayDate() {
   const today = new Date();
   return today.toISOString().split("T")[0];
@@ -105,7 +123,8 @@ export default function NutritionTracker() {
   const [showAddMeal, setShowAddMeal] = useState(false);
   const [selectedMealType, setSelectedMealType] = useState("breakfast");
   const [showCustomFood, setShowCustomFood] = useState(false);
-  const [customFood, setCustomFood] = useState({ name: "", calories: "", protein: "", carbs: "", fat: "" });
+  const [foodSearch, setFoodSearch] = useState("");
+  const [customFood, setCustomFood] = useState({ name: "", grams: "100", calories: "", protein: "", carbs: "", fat: "" });
 
   useEffect(() => {
     Promise.all([nutritionService.getLogsForDate(getTodayDate()), nutritionService.getGoals()]).then(([logs, savedGoals]) => {
@@ -175,16 +194,17 @@ export default function NutritionTracker() {
     e.preventDefault();
     if (!customFood.name.trim() || !customFood.calories) return;
 
+    const multiplier = (Number(customFood.grams) || 100) / 100;
     const newFood = {
       name: customFood.name.trim(),
-      calories: Number(customFood.calories),
-      protein: Number(customFood.protein) || 0,
-      carbs: Number(customFood.carbs) || 0,
-      fat: Number(customFood.fat) || 0,
+      calories: Math.round(Number(customFood.calories) * multiplier),
+      protein: Number((Number(customFood.protein || 0) * multiplier).toFixed(1)),
+      carbs: Number((Number(customFood.carbs || 0) * multiplier).toFixed(1)),
+      fat: Number((Number(customFood.fat || 0) * multiplier).toFixed(1)),
     };
 
     addFood(newFood);
-    setCustomFood({ name: "", calories: "", protein: "", carbs: "", fat: "" });
+    setCustomFood({ name: "", grams: "100", calories: "", protein: "", carbs: "", fat: "" });
     setShowCustomFood(false);
   };
 
@@ -344,9 +364,14 @@ export default function NutritionTracker() {
                     placeholder="e.g., Pasta with sauce"
                   />
                 </div>
+                <div className="form-group">
+                  <label>Amount eaten (g)</label>
+                  <input type="number" min="1" step="1" value={customFood.grams} onChange={(e) => setCustomFood({ ...customFood, grams: e.target.value })} />
+                  <small>Enter the weight from your kitchen scale.</small>
+                </div>
                 <div className="form-grid">
                   <div className="form-group">
-                    <label>Calories</label>
+                    <label>Calories per 100g</label>
                     <input
                       type="number"
                       value={customFood.calories}
@@ -357,7 +382,7 @@ export default function NutritionTracker() {
                     />
                   </div>
                   <div className="form-group">
-                    <label>Protein (g)</label>
+                    <label>Protein per 100g</label>
                     <input
                       type="number"
                       value={customFood.protein}
@@ -368,7 +393,7 @@ export default function NutritionTracker() {
                     />
                   </div>
                   <div className="form-group">
-                    <label>Carbs (g)</label>
+                    <label>Carbs per 100g</label>
                     <input
                       type="number"
                       value={customFood.carbs}
@@ -379,7 +404,7 @@ export default function NutritionTracker() {
                     />
                   </div>
                   <div className="form-group">
-                    <label>Fat (g)</label>
+                    <label>Fat per 100g</label>
                     <input
                       type="number"
                       value={customFood.fat}
@@ -390,15 +415,17 @@ export default function NutritionTracker() {
                     />
                   </div>
                 </div>
-                <button type="submit" className="btn-primary">Add Custom Food</button>
+                <p className="estimate-note">Calculated total: {Math.round(Number(customFood.calories || 0) * ((Number(customFood.grams) || 100) / 100))} kcal for {customFood.grams || 100}g</p>
+                <button type="submit" className="btn-primary">Calculate & Add Food</button>
               </form>
             )}
 
             {!showCustomFood && (
               <div className="common-foods">
-                <h4>Common Foods</h4>
+                <h4>Food Catalogue ({ALL_FOODS.length} foods)</h4>
+                <input type="search" value={foodSearch} onChange={(e) => setFoodSearch(e.target.value)} placeholder="Search foods" aria-label="Search foods" />
                 <div className="foods-grid">
-                  {COMMON_FOODS.map((food) => (
+                  {ALL_FOODS.filter((food) => food.name.toLowerCase().includes(foodSearch.trim().toLowerCase())).slice(0, 60).map((food) => (
                     <button
                       key={food.id}
                       onClick={() => addFood(food)}

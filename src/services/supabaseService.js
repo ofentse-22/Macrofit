@@ -321,6 +321,7 @@ export const nutritionService = {
       .order('created_at', { ascending: false });
 
     if (error) {
+      if (isMissingTableError(error)) return (user.user_metadata?.nutrition_logs || []).filter((log) => log.meal_date === date);
       console.error('Error fetching nutrition logs:', error);
       return [];
     }
@@ -341,6 +342,7 @@ export const nutritionService = {
       .order('meal_date', { ascending: false });
 
     if (error) {
+      if (isMissingTableError(error)) return (user.user_metadata?.nutrition_logs || []).filter((log) => log.meal_date >= startDate && log.meal_date <= endDate);
       console.error('Error fetching nutrition logs:', error);
       return [];
     }
@@ -361,8 +363,12 @@ export const nutritionService = {
       }])
       .select();
 
-    if (error) throw new Error(`Error adding nutrition log: ${error.message}`);
-    return data?.[0];
+    if (!error) return data?.[0];
+    if (!isMissingTableError(error)) throw new Error(`Error adding nutrition log: ${error.message}`);
+    const entry = { id: crypto.randomUUID(), ...logData, created_at: new Date().toISOString() };
+    const { data: authData, error: authError } = await supabase.auth.updateUser({ data: { ...user.user_metadata, nutrition_logs: [entry, ...(user.user_metadata?.nutrition_logs || [])].slice(0, 250) } });
+    if (authError) throw new Error(`Error adding nutrition log: ${authError.message}`);
+    return authData.user?.user_metadata?.nutrition_logs?.[0] || entry;
   },
 
   // Delete nutrition log
@@ -376,7 +382,10 @@ export const nutritionService = {
       .eq('id', id)
       .eq('user_id', user.id);
 
-    if (error) throw new Error(`Error deleting nutrition log: ${error.message}`);
+    if (!error) return;
+    if (!isMissingTableError(error)) throw new Error(`Error deleting nutrition log: ${error.message}`);
+    const { error: authError } = await supabase.auth.updateUser({ data: { ...user.user_metadata, nutrition_logs: (user.user_metadata?.nutrition_logs || []).filter((log) => log.id !== id) } });
+    if (authError) throw new Error(`Error deleting nutrition log: ${authError.message}`);
   },
 
   // Get nutrition goals
@@ -391,6 +400,7 @@ export const nutritionService = {
       .single();
 
     if (error) {
+      if (isMissingTableError(error)) return user.user_metadata?.nutrition_goals || { daily_calories: 2500, daily_protein_g: 150, daily_carbs_g: 300, daily_fat_g: 70 };
       // Return defaults if not found
       return {
         daily_calories: 2500,
@@ -418,8 +428,11 @@ export const nutritionService = {
       .select()
       .single();
 
-    if (error) throw new Error(`Error updating nutrition goals: ${error.message}`);
-    return data;
+    if (!error) return data;
+    if (!isMissingTableError(error)) throw new Error(`Error updating nutrition goals: ${error.message}`);
+    const { data: authData, error: authError } = await supabase.auth.updateUser({ data: { ...user.user_metadata, nutrition_goals: goals } });
+    if (authError) throw new Error(`Error updating nutrition goals: ${authError.message}`);
+    return authData.user?.user_metadata?.nutrition_goals || goals;
   },
 
   // Calculate daily totals
