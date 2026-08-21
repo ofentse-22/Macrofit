@@ -551,20 +551,18 @@ export const bodyCompositionService = {
     if (!user) return [];
 
     const { data, error } = await supabase
-      .from('body_composition_logs')
-      .select('*')
+      .from('body_composition')
+      .select('*, measurement_date:date')
       .eq('user_id', user.id)
-      .gte('measurement_date', startDate)
-      .lte('measurement_date', endDate)
-      .order('measurement_date', { ascending: true });
+      .gte('date', startDate)
+      .lte('date', endDate)
+      .order('date', { ascending: true });
 
     if (error) {
-      if (isMissingTableError(error)) {
-        return (user.user_metadata?.body_composition_logs || []).filter((log) => log.measurement_date >= startDate && log.measurement_date <= endDate);
-      }
       console.error('Error fetching body composition logs:', error);
       return [];
     }
+
     return data || [];
   },
 
@@ -573,25 +571,30 @@ export const bodyCompositionService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
+    // Convert the app's field names to the actual Supabase
+    // body_composition table column names.
+    const record = {
+      user_id: user.id,
+      bmi: data.bmi ?? null,
+      body_fat: data.body_fat ?? null,
+      weight: data.weight ?? data.weight_kg ?? null,
+      lean_mass: data.lean_mass ?? null,
+      fat_mass: data.fat_mass ?? null,
+      bmr: data.bmr ?? null,
+      maintenance: data.maintenance ?? null,
+      date: data.date ?? data.measurement_date ?? new Date().toISOString().split('T')[0],
+    };
+
     const { data: result, error } = await supabase
-      .from('body_composition_logs')
-      .insert([{
-        user_id: user.id,
-        ...data,
-        created_at: new Date(),
-      }])
-      .select();
+      .from('body_composition')
+      .insert([record])
+      .select('*, measurement_date:date');
 
-    if (!error) return result?.[0];
-    if (!isMissingTableError(error)) throw new Error(`Error adding body composition log: ${error.message}`);
+    if (error) {
+      throw new Error(`Error adding body composition log: ${error.message}`);
+    }
 
-    const entry = { id: crypto.randomUUID(), ...data, created_at: new Date().toISOString() };
-    const existing = user.user_metadata?.body_composition_logs || [];
-    const { data: authData, error: authError } = await supabase.auth.updateUser({
-      data: { ...user.user_metadata, body_composition_logs: [entry, ...existing].slice(0, 100) },
-    });
-    if (authError) throw new Error(`Error adding body composition log: ${authError.message}`);
-    return authData.user?.user_metadata?.body_composition_logs?.[0] || entry;
+    return result?.[0];
   },
 
   // Get latest measurement
@@ -600,24 +603,34 @@ export const bodyCompositionService = {
     if (!user) return null;
 
     const { data, error } = await supabase
-      .from('body_composition_logs')
-      .select('*')
+      .from('body_composition')
+      .select('*, measurement_date:date')
       .eq('user_id', user.id)
-      .order('measurement_date', { ascending: false })
+      .order('date', { ascending: false })
       .limit(1)
       .single();
 
     if (error && error.code !== 'PGRST116') {
       console.error('Error fetching latest measurement:', error);
     }
+
     return data || null;
   },
 
+  // Delete body composition log
   async deleteLog(id) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
-    const { error } = await supabase.from('body_composition_logs').delete().eq('id', id).eq('user_id', user.id);
-    if (error) throw new Error(`Error deleting body composition log: ${error.message}`);
+
+    const { error } = await supabase
+      .from('body_composition')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
+
+    if (error) {
+      throw new Error(`Error deleting body composition log: ${error.message}`);
+    }
   },
 };
 
