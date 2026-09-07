@@ -1,5 +1,45 @@
-import React, { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import './Analytics.css';
+
+function SimpleLineChart({ data, dataKey, color, height = 200 }) {
+  const safeData = (Array.isArray(data) ? data : [])
+    .map((entry) => ({
+      ...entry,
+      [dataKey]: Number.isFinite(Number(entry?.[dataKey])) ? Number(entry[dataKey]) : 0,
+    }));
+
+  if (safeData.length === 0) {
+    return <div className="empty-chart">No data available</div>;
+  }
+
+  const values = safeData.map(d => d[dataKey]);
+  const minValue = Math.min(...values);
+  const maxValue = Math.max(...values);
+  const range = maxValue - minValue || 1;
+
+  const points = safeData.map((d, i) => ({
+    x: (i / (safeData.length - 1 || 1)) * 100,
+    y: 100 - ((d[dataKey] - minValue) / range) * 100,
+  }));
+
+  const pathData = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+
+  return (
+    <div className="chart-container" style={{ height }}>
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="line-chart">
+        <line x1="0" y1="25" x2="100" y2="25" className="grid-line" />
+        <line x1="0" y1="50" x2="100" y2="50" className="grid-line" />
+        <line x1="0" y1="75" x2="100" y2="75" className="grid-line" />
+        <path d={pathData} className="chart-line" style={{ stroke: color }} fill="none" strokeWidth="2" />
+        <path d={`${pathData} L 100 100 L 0 100 Z`} className="chart-fill" style={{ fill: color, opacity: 0.1 }} />
+      </svg>
+      <div className="chart-labels">
+        <span className="label-first">{safeData[0][dataKey]}</span>
+        <span className="label-last">{safeData[safeData.length - 1][dataKey]}</span>
+      </div>
+    </div>
+  );
+}
 
 export default function Analytics() {
   const [data, setData] = useState({
@@ -12,11 +52,7 @@ export default function Analytics() {
   const [timeRange, setTimeRange] = useState('month');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadAnalyticsData();
-  }, [timeRange]);
-
-  const loadAnalyticsData = () => {
+  const loadAnalyticsData = useCallback(() => {
     try {
       const weightHistory = JSON.parse(localStorage.getItem('weightHistory') || '[]');
       const nutritionLog = JSON.parse(localStorage.getItem('nutritionLog') || '[]');
@@ -118,56 +154,18 @@ export default function Analytics() {
       console.error('Error loading analytics:', error);
       setLoading(false);
     }
-  };
+  }, [timeRange]);
 
-  const SimpleLineChart = ({ data, dataKey, color, height = 200 }) => {
-    if (!data || data.length === 0) {
-      return <div className="empty-chart">No data available</div>;
-    }
+  useEffect(() => {
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) loadAnalyticsData();
+    });
 
-    const values = data.map(d => d[dataKey]);
-    const minValue = Math.min(...values);
-    const maxValue = Math.max(...values);
-    const range = maxValue - minValue || 1;
-
-    const points = data.map((d, i) => ({
-      x: (i / (data.length - 1 || 1)) * 100,
-      y: 100 - ((d[dataKey] - minValue) / range) * 100,
-    }));
-
-    const pathData = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-
-    return (
-      <div className="chart-container" style={{ height }}>
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="line-chart">
-          {/* Grid lines */}
-          <line x1="0" y1="25" x2="100" y2="25" className="grid-line" />
-          <line x1="0" y1="50" x2="100" y2="50" className="grid-line" />
-          <line x1="0" y1="75" x2="100" y2="75" className="grid-line" />
-
-          {/* Line */}
-          <path d={pathData} className="chart-line" style={{ stroke: color }} fill="none" strokeWidth="2" />
-
-          {/* Fill under line */}
-          <path
-            d={`${pathData} L 100 100 L 0 100 Z`}
-            className="chart-fill"
-            style={{ fill: color, opacity: 0.1 }}
-          />
-        </svg>
-
-        {/* Labels */}
-        <div className="chart-labels">
-          {data.length > 0 && (
-            <>
-              <span className="label-first">{data[0][dataKey]}</span>
-              <span className="label-last">{data[data.length - 1][dataKey]}</span>
-            </>
-          )}
-        </div>
-      </div>
-    );
-  };
+    return () => {
+      cancelled = true;
+    };
+  }, [loadAnalyticsData]);
 
   if (loading) {
     return <div className="analytics-container loading">Loading analytics...</div>;
@@ -206,7 +204,6 @@ export default function Analytics() {
           )}
           {data.stats.avgCalories > 0 && (
             <div className="stat-item">
-              <span className="stat-icon">🍎</span>
               <span className="stat-label">Avg Daily Calories</span>
               <span className="stat-value">{data.stats.avgCalories}</span>
             </div>
@@ -236,7 +233,7 @@ export default function Analytics() {
             <SimpleLineChart
               data={data.weightTrend}
               dataKey="weight"
-              color="#60a5fa"
+              color="#0b1833"
               height={250}
             />
             <div className="chart-info">
@@ -255,7 +252,7 @@ export default function Analytics() {
             <SimpleLineChart
               data={data.caloriesTrend}
               dataKey="calories"
-              color="#4ade80"
+              color="#1d56c7"
               height={250}
             />
             <div className="chart-info">
@@ -276,7 +273,7 @@ export default function Analytics() {
             <SimpleLineChart
               data={data.workoutTrend}
               dataKey="count"
-              color="#f59e0b"
+              color="#1d56c7"
               height={250}
             />
             <div className="chart-info">
@@ -293,7 +290,7 @@ export default function Analytics() {
             <SimpleLineChart
               data={data.volumeTrend}
               dataKey="sets"
-              color="#a78bfa"
+              color="#1d56c7"
               height={250}
             />
             <div className="chart-info">

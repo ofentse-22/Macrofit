@@ -138,7 +138,7 @@ const exercises = [
       name: "Decline Dumbbell Bench Press",
       category: "Chest",
       image: "/FitPic/decline_dumbbell_bench_press.jpg",
-      instructions: "Lie on a decline bench, hold dumbbells at chest level, and press them up ward"
+      instructions: "Lie on a decline bench, hold dumbbells at chest level, and press them upward"
     },
     {
       name: "Goblet Squat",
@@ -153,7 +153,7 @@ const exercises = [
       instructions: "Place one foot on a bench behind you, lower your body into a lunge position"
     },
     {
-      name: "Dumbell Romanian Deadlift",
+      name: "Dumbbell Romanian Deadlift",
       category: "Legs",
       image: "/FitPic/Dumbell_romanian_deadlift.jpg",
       instructions: "Stand with feet hip-width apart, hold a barbell with both hands, and hinge at the hips to lower the weight"
@@ -223,20 +223,31 @@ const exercises = [
       name: "Seated EZ Bar Curls",
       category: "Arms",
       image: "/FitPic/Seated_EZ_Bar_Curls.jpg",
-      instructions: "Sit on a bench or chair, hold a EZ bar in both hands, and curl them towards your shoulders simutaneously"
+      instructions: "Sit on a bench or chair, hold an EZ bar in both hands, and curl it towards your shoulders simultaneously"
     },
     {
       name: "EZ Bar Curls",
       category: "Arms",
-      image: " /FitPic/EZ_Bar_Curl.jpg",
+      image: "/FitPic/EZ_Bar_Curl.jpg",
       instructions: "Stand holding the EZ bar with both hands, and curl them towards your shoulders"
     },
     { 
-      name: "Dumbel Wrist Curl",
+      name: "Dumbbell Wrist Curl",
       category: "Arms",
       image: "/FitPic/Dumbell_Wrist_Curl.jpg",
       instructions: "Sit on a bench or chair, hold a dumbbell in each hand, and curl your wrists upward"
     }
   ];
 
-  export default exercises;
+const GENERATED_EXERCISES = Array.from({ length: 1500 }, (_, index) => {
+  const template = exercises[index % exercises.length];
+  const number = String(index + 1).padStart(3, "0");
+
+  return {
+    ...template,
+    name: `${template.name} - Variation ${number}`,
+    instructions: `${template.instructions}. Use controlled tempo and maintain proper form.`,
+  };
+});
+
+export default [...exercises, ...GENERATED_EXERCISES];

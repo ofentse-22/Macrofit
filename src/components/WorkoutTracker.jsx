@@ -28,10 +28,19 @@ export default function WorkoutTracker() {
         .order('created_at', { ascending: false });
 
       if (error) console.error("Error loading workouts:", error);
-      else setExercises(data || []);
+      else setExercises((data || []).map((exercise) => ({
+        ...exercise,
+        sets: Number.isFinite(Number(exercise.sets)) ? Number(exercise.sets) : 0,
+        reps: Number.isFinite(Number(exercise.reps)) ? Number(exercise.reps) : 0,
+        completed_sets: Number.isFinite(Number(exercise.completed_sets)) ? Number(exercise.completed_sets) : 0,
+        rest_time_seconds: Number.isFinite(Number(exercise.rest_time_seconds)) ? Number(exercise.rest_time_seconds) : 60,
+      })));
     };
 
-    loadExercises();
+    loadExercises().catch((error) => {
+      console.error("Error loading workouts:", error);
+      alert("Unable to load your workout. Please try again.");
+    });
   }, []);
 
   const filteredExercises = useMemo(() => {
@@ -86,39 +95,45 @@ export default function WorkoutTracker() {
       .insert([newExercise])
       .select();
 
-    console.log("Inserted:", data);
-    console.log("Error:", error);
-
     if (error) {
       alert("Error saving exercise: " + error.message);
     } else {
       alert("Exercise added successfully!");
-      setExercises(prev => [...data, ...prev]);
+      setExercises(prev => [...(data || []), ...prev]);
       clearForm();
     }
   };
 
   const updateExercise = async () => {
     if (!exerciseName || !sets || !reps) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      alert("Please log in first");
+      return;
+    }
+    const nextSets = Number(sets);
+    const nextReps = Number(reps);
+    const nextRestTime = Number(restTime) || 60;
 
     const { error } = await supabase
       .from('workouts')
       .update({
         name: exerciseName,
-        sets: parseInt(sets),
-        reps: parseInt(reps),
+        sets: nextSets,
+        reps: nextReps,
         weight_kg: weight ? parseFloat(weight) : null,
-        rest_time_seconds: parseInt(restTime)
+        rest_time_seconds: nextRestTime,
+        updated_at: new Date().toISOString(),
       })
       .eq('id', editingId)
-      .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
+      .eq('user_id', user.id);
 
     if (error) alert("Error updating: " + error.message);
     else {
       alert("Exercise updated!");
-      setExercises(exercises.map(ex => 
+      setExercises(current => current.map(ex => 
         ex.id === editingId 
-          ? { ...ex, name: exerciseName, sets: parseInt(sets), reps: parseInt(reps), weight_kg: weight ? parseFloat(weight) : null, rest_time_seconds: parseInt(restTime) }
+          ? { ...ex, name: exerciseName, sets: nextSets, reps: nextReps, weight_kg: weight ? parseFloat(weight) : null, rest_time_seconds: nextRestTime }
           : ex
       ));
       setEditingId(null);
@@ -133,7 +148,7 @@ export default function WorkoutTracker() {
     const { error } = await supabase.from('workouts').delete().eq('id', id).eq('user_id', user?.id);
     if (error) alert("Error deleting: " + error.message);
     else {
-      setExercises(exercises.filter(ex => ex.id !== id));
+      setExercises(current => current.filter(ex => ex.id !== id));
     }
   };
 
@@ -150,33 +165,47 @@ export default function WorkoutTracker() {
   const completeSet = async (id) => {
     const exercise = exercises.find(ex => ex.id === id);
     if (!exercise) return;
+    const completedSets = Number.isFinite(Number(exercise.completed_sets)) ? Number(exercise.completed_sets) : 0;
+    const totalSets = Number.isFinite(Number(exercise.sets)) ? Number(exercise.sets) : 0;
+    if (totalSets < 1 || completedSets >= totalSets) return;
+    const nextCompletedSets = Math.min(completedSets + 1, totalSets);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      alert("Please log in first");
+      return;
+    }
 
     const { error } = await supabase
       .from('workouts')
-      .update({ completed_sets: exercise.completed_sets + 1 })
+      .update({ completed_sets: nextCompletedSets, updated_at: new Date().toISOString() })
       .eq('id', id)
-      .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
+      .eq('user_id', user.id);
 
-    if (error) console.error(error);
+    if (error) alert("Unable to complete set: " + error.message);
     else {
-      setExercises(exercises.map(ex => 
+      setExercises(current => current.map(ex => 
         ex.id === id 
-          ? { ...ex, completed_sets: ex.completed_sets + 1 }
+          ? { ...ex, completed_sets: nextCompletedSets }
           : ex
       ));
     }
   };
 
   const resetExercise = async (id) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      alert("Please log in first");
+      return;
+    }
     const { error } = await supabase
       .from('workouts')
-      .update({ completed_sets: 0 })
+      .update({ completed_sets: 0, updated_at: new Date().toISOString() })
       .eq('id', id)
-      .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
+      .eq('user_id', user.id);
 
-    if (error) console.error(error);
+    if (error) alert("Unable to reset exercise: " + error.message);
     else {
-      setExercises(exercises.map(ex => 
+      setExercises(current => current.map(ex => 
         ex.id === id 
           ? { ...ex, completed_sets: 0 }
           : ex
@@ -194,7 +223,11 @@ export default function WorkoutTracker() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    await supabase.from('workouts').delete().eq('user_id', user.id);
+    const { error } = await supabase.from('workouts').delete().eq('user_id', user.id);
+    if (error) {
+      alert("Unable to clear workout: " + error.message);
+      return;
+    }
     setExercises([]);
   };
 
@@ -288,15 +321,18 @@ export default function WorkoutTracker() {
           {exercises.length === 0 ? (
             <p className="empty-message">No exercises added yet. Start building your workout!</p>
           ) : (
-            exercises.map((exercise) => (
+            exercises.map((exercise) => {
+              const libraryExercise = exerciseLibrary.find((item) => item.name === exercise.name);
+              const imageUrl = exercise.image_url || libraryExercise?.image;
+
+              return (
               <div key={exercise.id} className="exercise-item">
                 <div className="exercise-header">
-                  {exercise.image_url && (
+                  {imageUrl && (
                     <img
-                      src={exercise.image_url}
+                      src={imageUrl}
                       alt={exercise.name}
                       className="workout-image"
-                      onError={() => console.log("Image failed to load:", exercise.image_url)}
                     />
                   )}
                   <div className="exercise-info">
@@ -324,7 +360,11 @@ export default function WorkoutTracker() {
                 </div>
 
                 {exercise.completed_sets > 0 && exercise.completed_sets < exercise.sets && (
-                  <RestTimer restTime={exercise.rest_time_seconds} isActive={true} onComplete={() => {}} />
+                  <RestTimer
+                    key={`${exercise.id}-${exercise.completed_sets}`}
+                    restTime={exercise.rest_time_seconds}
+                    isActive={true}
+                  />
                 )}
 
                 <div className="exercise-controls">
@@ -336,7 +376,8 @@ export default function WorkoutTracker() {
                   </button>
                 </div>
               </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>

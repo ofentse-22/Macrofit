@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import "./WeightTracker.css";
 import { weightService } from "../services/supabaseService";
 
@@ -20,8 +20,13 @@ function WeightCard({ label, value, unit, color }) {
 }
 
 function ProgressChart({ data, valueKey, labelKey, color = "#60a5fa" }) {
-  const safeData = Array.isArray(data) && data.length > 0 ? data : [{ [labelKey]: "No data", [valueKey]: 0 }];
-  const values = safeData.map((entry) => Number(entry[valueKey]));
+  const normalizedData = (Array.isArray(data) ? data : [])
+    .map((entry) => ({
+      ...entry,
+      [valueKey]: Number.isFinite(Number(entry?.[valueKey])) ? Number(entry[valueKey]) : 0,
+    }));
+  const safeData = normalizedData.length > 0 ? normalizedData : [{ [labelKey]: "No data", [valueKey]: 0 }];
+  const values = safeData.map((entry) => entry[valueKey]);
   const min = Math.min(...values) - 0.5;
   const max = Math.max(...values) + 0.5;
 
@@ -52,7 +57,7 @@ function ProgressChart({ data, valueKey, labelKey, color = "#60a5fa" }) {
   );
 }
 
-export default function WeightTracker() {
+export default function WeightTracker({ autoOpen = false }) {
   const [weightHistory, setWeightHistory] = useState([]);
 
   const [weightGoals, setWeightGoals] = useState(() => {
@@ -63,17 +68,35 @@ export default function WeightTracker() {
     }
   });
 
-  const [showWeightForm, setShowWeightForm] = useState(false);
+  const [showWeightForm, setShowWeightForm] = useState(autoOpen);
   const [newWeight, setNewWeight] = useState("");
   const [showGoalForm, setShowGoalForm] = useState(false);
   const [goalForm, setGoalForm] = useState(weightGoals);
 
-  const loadWeightHistory = async () => {
+  const loadWeightHistory = useCallback(async () => {
     const logs = await weightService.getLogsForRange("2000-01-01", getTodayDate());
-    setWeightHistory(logs.slice().reverse().map((log) => ({ id: log.id, date: log.weight_date, weight: Number(log.weight_kg), addedAt: log.created_at })));
-  };
+    return logs.slice().reverse().map((log) => ({
+      id: log.id,
+      date: log.weight_date,
+      weight: Number(log.weight_kg),
+      addedAt: log.created_at,
+    }));
+  }, []);
 
-  useEffect(() => { loadWeightHistory(); }, []);
+  useEffect(() => {
+    let cancelled = false;
+    queueMicrotask(async () => {
+      if (cancelled) return;
+      const logs = await loadWeightHistory();
+      if (!cancelled) {
+        setWeightHistory(logs);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loadWeightHistory]);
 
   const today = getTodayDate();
   const todayEntry = weightHistory.find((entry) => entry.date === today);

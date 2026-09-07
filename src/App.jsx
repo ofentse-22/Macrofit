@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { supabase } from './supabaseClient';
 
 import Dashboard from './components/Dashboard';
 import WorkoutTracker from './components/WorkoutTracker';
@@ -21,34 +20,25 @@ import './App.css';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [theme, setTheme] = useState(() => localStorage.getItem('fitlab-theme') || 'dark');
-
+  const [quickActionsOpen, setQuickActionsOpen] = useState(false);
+  const [quickTarget, setQuickTarget] = useState(null);
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      console.log("Current logged in user:", data.user);
-    });
+    document.documentElement.dataset.theme = 'dark';
+    localStorage.setItem('fitlab-theme', 'dark');
   }, []);
 
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    localStorage.setItem('fitlab-theme', theme);
-  }, [theme]);
-
   const tabs = [
-    ['dashboard', 'Dashboard'],
-    ['workout', 'Workout'],
-    ['history', 'History'],
-    ['progress', 'Progress & Records'],
-    ['calendar', 'Calendar'],
-    ['templates', 'Templates'],
-    ['library', 'Exercise library'],
-    ['bodycomp', 'Body Composition'],
-    ['nutrition', 'Nutrition'],
-    ['weight', 'Weight Tracker'],
-    ['generator', 'Workout Generator'],
-    ['analytics', 'Analytics'],
-    ['account', 'Account'],
-    ['export', 'Export'],
+    ['dashboard', 'Home'],
+    ['training', 'Training'],
+    ['health', 'Nutrition'],
+    ['progress', 'Progress'],
+    ['account', 'Profile'],
+  ];
+
+  const secondaryTabs = [
+    ['plan', 'Plan'],
+    ['library', 'Exercise Library'],
+    ['export', 'Account & Export'],
   ];
 
   return (
@@ -59,14 +49,6 @@ function App() {
             <h1>FitLab</h1>
             <p>Your personal fitness companion</p>
           </div>
-          <button
-            className="theme-toggle"
-            onClick={() => setTheme((currentTheme) => currentTheme === 'dark' ? 'light' : 'dark')}
-            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-            aria-pressed={theme === 'light'}
-          >
-            {theme === 'dark' ? 'Light mode' : 'Dark mode'}
-          </button>
         </div>
       </header>
 
@@ -83,22 +65,30 @@ function App() {
         ))}
       </nav>
 
+      <nav className="secondary-nav" aria-label="Secondary navigation">
+        {secondaryTabs.map(([id, label]) => (
+          <button key={id} className={activeTab === id ? 'active' : ''} onClick={() => setActiveTab(id)}>
+            {label}
+          </button>
+        ))}
+      </nav>
+
       <main className="app-main">
-        {activeTab === 'dashboard' && <Dashboard />}
-        {activeTab === 'workout' && <WorkoutTracker />}
-        {activeTab === 'history' && <WorkoutHistory />}
-        {activeTab === 'progress' && <><ProgressiveOverload /><PersonalRecords /><Gamification /></>}
-        {activeTab === 'calendar' && <WorkoutCalendar />}
-        {activeTab === 'templates' && <WorkoutTemplates />}
+        {activeTab === 'dashboard' && <Dashboard onNavigate={setActiveTab} />}
+        {activeTab === 'training' && <div className="workspace-stack"><WorkoutTracker /><WorkoutHistory /><WorkoutCalendar /></div>}
+        {activeTab === 'progress' && <div className="workspace-stack"><Analytics /><ProgressiveOverload /><PersonalRecords /><Gamification /></div>}
+        {activeTab === 'plan' && <div className="workspace-stack"><WorkoutGenerator /><WorkoutTemplates /></div>}
         {activeTab === 'library' && <ExerciseLibrary />}
-        {activeTab === 'bodycomp' && <BodyComposition />}
-        {activeTab === 'nutrition' && <NutritionTracker />}
-        {activeTab === 'weight' && <WeightTracker />}
-        {activeTab === 'generator' && <WorkoutGenerator />}
-        {activeTab === 'analytics' && <Analytics />}
-        {activeTab === 'account' && <AuthPanel />}
-        {activeTab === 'export' && <DataExport />}
+        {activeTab === 'health' && <div className="workspace-stack"><NutritionTracker autoOpen={quickTarget === 'food'} /><WeightTracker autoOpen={quickTarget === 'weight'} /><BodyComposition /></div>}
+        {activeTab === 'account' && <div className="workspace-stack"><AuthPanel /><DataExport /></div>}
+        {activeTab === 'export' && <div className="workspace-stack"><AuthPanel /><DataExport /></div>}
       </main>
+
+      {quickActionsOpen && <div className="quick-action-menu" role="menu"><button type="button" onClick={() => { setQuickTarget(null); setActiveTab('training'); setQuickActionsOpen(false); }}>Log Workout</button><button type="button" onClick={() => { setQuickTarget('food'); setActiveTab('health'); setQuickActionsOpen(false); }}>Log Food</button><button type="button" onClick={() => { setQuickTarget('weight'); setActiveTab('health'); setQuickActionsOpen(false); }}>Log Weight</button></div>}
+      <button className="quick-action" type="button" onClick={() => setQuickActionsOpen((open) => !open)} aria-label="Open quick actions" aria-expanded={quickActionsOpen}>
+        <span aria-hidden="true">+</span>
+        <span>{quickActionsOpen ? "Close" : "Log activity"}</span>
+      </button>
 
       <footer className="app-footer">
         <p>2026 FitTrack. Build strength, track progress, stay consistent.</p>

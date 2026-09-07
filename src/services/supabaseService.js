@@ -234,12 +234,16 @@ export const workoutService = {
 
     if (fetchError) throw fetchError;
 
+    const totalSets = Number.isFinite(Number(workout.sets)) ? Number(workout.sets) : 0;
+    const completedSets = Number.isFinite(Number(workout.completed_sets)) ? Number(workout.completed_sets) : 0;
+    if (totalSets < 1 || completedSets >= totalSets) return workout;
+
     // Update completed sets
     const { data, error } = await supabase
       .from('workouts')
       .update({
-        completed_sets: workout.completed_sets + 1,
-        updated_at: new Date(),
+        completed_sets: Math.min(completedSets + 1, totalSets),
+        updated_at: new Date().toISOString(),
       })
       .eq('id', id)
       .eq('user_id', user.id)

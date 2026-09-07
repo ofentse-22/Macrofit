@@ -64,10 +64,12 @@ const COMMON_FOODS = [
 // the weighed-food calculator below when a packet label or kitchen scale is available.
 const EXPANDED_FOOD_NAMES = `Aubergine Artichoke Arugula Beetroot BokChoy BrusselsSprouts Cabbage Celery Courgette Eggplant Fennel Leek Okra Onion Parsnip Peas Pumpkin Radish Rocket Rutabaga Turnip Zucchini Apricot Blackberry Cantaloupe Cherry Clementine Cranberry Date Fig Grapefruit Guava Kiwi Lemon Lime Lychee Nectarine Papaya Passionfruit Plum Pomegranate Raspberry Satsuma Tangerine Coconut Macadamia Pecan Pistachio BrazilNut Hazelnut SunflowerSeeds PumpkinSeeds FlaxSeeds SesameSeeds Barley Buckwheat Bulgur Farro Millet Polenta RyeBread Sourdough BreadRoll Bagel Pita Breadstick Noodles Ramen Gnocchi Lasagne Tortilla Crackers Muesli Weetabix BranFlakes Risotto ArborioRice BasmatiRice JasmineRice WildRice ChickenThigh ChickenDrumstick ChickenWing Duck Breast LambChop LambLeg Veal Mince BeefSteak Sirloin Ribeye Sardines Mackerel Hake Tilapia Trout Anchovies Mussels Clams Crab Lobster Squid Octopus Bacon Ham Salami Chorizo EggWhite Feta Ricotta Parmesan Brie Camembert Halloumi SoyMilk OatMilk AlmondMilk RiceMilk IceCream Gelato Custard Butter Ghee Margarine Cream SourCream Buttermilk`.split(' ');
 
+const CATALOGUE_SERVINGS = Array.from({ length: 64 }, (_, index) => 50 + index * 25);
+
 const CATALOGUE_FOODS = EXPANDED_FOOD_NAMES.flatMap((name, index) => {
   const base = { calories: 55 + (index % 9) * 20, protein: 2 + (index % 7) * 2.5, carbs: 5 + (index % 8) * 4, fat: 0.5 + (index % 6) * 1.8 };
-  return [50, 75, 100, 125, 150, 175, 200, 250, 300, 400, 500, 600].map((grams, serving) => ({
-    id: 101 + index * 12 + serving,
+  return CATALOGUE_SERVINGS.map((grams, serving) => ({
+    id: 101 + index * CATALOGUE_SERVINGS.length + serving,
     name: `${name} (${grams}g, estimate)`,
     calories: Math.round(base.calories * grams / 100),
     protein: Number((base.protein * grams / 100).toFixed(1)),
@@ -83,14 +85,14 @@ function getTodayDate() {
   return today.toISOString().split("T")[0];
 }
 
-function MacroBar({ label, consumed, goal, color }) {
+function MacroBar({ label, consumed, goal, color, displayValue }) {
   const percentage = goal > 0 ? Math.min((consumed / goal) * 100, 100) : 0;
 
   return (
     <div className="macro-bar">
       <div className="macro-label">
         <span>{label}</span>
-        <span className="macro-value">{consumed.toFixed(0)} / {goal} {label === "Calories" ? "kcal" : label === "Protein" ? "g" : label === "Carbs" ? "g" : "g"}</span>
+        <span className="macro-value">{displayValue || `${consumed.toFixed(0)} / ${goal} ${label === "Calories" ? "kcal" : "g"}`}</span>
       </div>
       <div className="macro-progress" style={{ "--bar-color": color }}>
         <div className="macro-fill" style={{ width: `${percentage}%` }}></div>
@@ -99,11 +101,10 @@ function MacroBar({ label, consumed, goal, color }) {
   );
 }
 
-function NutritionCard({ title, emoji, value, unit, color }) {
+function NutritionCard({ title, value, unit, color }) {
   return (
     <div className="nutrition-card" style={{ borderLeftColor: color }}>
       <div className="nutrition-card-header">
-        <span className="nutrition-emoji">{emoji}</span>
         <span className="nutrition-title">{title}</span>
       </div>
       <div className="nutrition-value">
@@ -114,26 +115,32 @@ function NutritionCard({ title, emoji, value, unit, color }) {
   );
 }
 
-export default function NutritionTracker() {
+export default function NutritionTracker({ autoOpen = false }) {
   const [meals, setMeals] = useState([]);
 
   const [macroGoals, setMacroGoals] = useState({});
   const [showGoalForm, setShowGoalForm] = useState(false);
   const [goalForm, setGoalForm] = useState(macroGoals);
-  const [showAddMeal, setShowAddMeal] = useState(false);
+  const [showAddMeal, setShowAddMeal] = useState(autoOpen);
   const [selectedMealType, setSelectedMealType] = useState("breakfast");
   const [showCustomFood, setShowCustomFood] = useState(false);
   const [foodSearch, setFoodSearch] = useState("");
+  const [macroView, setMacroView] = useState("grams");
+  const [waterIntake, setWaterIntake] = useState(() => Number(localStorage.getItem("fitlab-water") || 0));
   const [customFood, setCustomFood] = useState({ name: "", grams: "100", calories: "", protein: "", carbs: "", fat: "" });
 
   useEffect(() => {
     Promise.all([nutritionService.getLogsForDate(getTodayDate()), nutritionService.getGoals()]).then(([logs, savedGoals]) => {
-      setMeals(logs.map((log) => ({ id: log.id, date: log.meal_date, mealType: log.meal_type, name: log.food_name, calories: Number(log.calories) || 0, protein: Number(log.protein_g) || 0, carbs: Number(log.carbs_g) || 0, fat: Number(log.fat_g) || 0 })));
+      setMeals(logs.map((log) => ({ id: log.id, date: log.meal_date, mealType: log.meal_type, name: log.food_name, quantity: Number(log.quantity) || 0, calories: Number(log.calories) || 0, protein: Number(log.protein_g) || 0, carbs: Number(log.carbs_g) || 0, fat: Number(log.fat_g) || 0 })));
       const goals = savedGoals || {};
       setMacroGoals({ calories: goals.daily_calories, protein: goals.daily_protein_g, carbs: goals.daily_carbs_g, fat: goals.daily_fat_g });
       setGoalForm({ calories: goals.daily_calories, protein: goals.daily_protein_g, carbs: goals.daily_carbs_g, fat: goals.daily_fat_g });
     });
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem("fitlab-water", String(waterIntake));
+  }, [waterIntake]);
 
   const totals = meals.reduce(
     (acc, meal) => ({
@@ -157,6 +164,12 @@ export default function NutritionTracker() {
     protein: Math.max(0, goals.protein - totals.protein),
     carbs: Math.max(0, goals.carbs - totals.carbs),
     fat: Math.max(0, goals.fat - totals.fat),
+  };
+
+  const formatMacro = (value, goal) => {
+    if (macroView === "remaining") return `${Math.max(0, goal - value).toFixed(0)}g left`;
+    if (macroView === "percent") return `${goal > 0 ? Math.round((value / goal) * 100) : 0}%`;
+    return `${value.toFixed(0)}g`;
   };
 
   const mealsByType = {
@@ -184,8 +197,8 @@ export default function NutritionTracker() {
   const addFood = async (food) => {
     const today = getTodayDate();
     try {
-      const saved = await nutritionService.addLog({ meal_date: today, meal_type: selectedMealType, food_name: food.name, calories: food.calories, protein_g: food.protein, carbs_g: food.carbs, fat_g: food.fat });
-      setMeals((current) => [{ id: saved.id, date: saved.meal_date, mealType: saved.meal_type, name: saved.food_name, calories: Number(saved.calories) || 0, protein: Number(saved.protein_g) || 0, carbs: Number(saved.carbs_g) || 0, fat: Number(saved.fat_g) || 0 }, ...current]);
+      const saved = await nutritionService.addLog({ meal_date: today, meal_type: selectedMealType, food_name: food.name, quantity: food.grams || null, quantity_unit: food.grams ? "g" : null, calories: food.calories, protein_g: food.protein, carbs_g: food.carbs, fat_g: food.fat });
+      setMeals((current) => [{ id: saved.id, date: saved.meal_date, mealType: saved.meal_type, name: saved.food_name, quantity: Number(saved.quantity) || Number(food.grams) || 0, calories: Number(saved.calories) || 0, protein: Number(saved.protein_g) || 0, carbs: Number(saved.carbs_g) || 0, fat: Number(saved.fat_g) || 0 }, ...current]);
       setShowAddMeal(false);
     } catch (saveError) { alert(saveError.message || "Unable to save meal. Please log in and try again."); }
   };
@@ -203,7 +216,7 @@ export default function NutritionTracker() {
       fat: Number((Number(customFood.fat || 0) * multiplier).toFixed(1)),
     };
 
-    addFood(newFood);
+    addFood({ ...newFood, grams: Number(customFood.grams) || 100 });
     setCustomFood({ name: "", grams: "100", calories: "", protein: "", carbs: "", fat: "" });
     setShowCustomFood(false);
   };
@@ -217,6 +230,16 @@ export default function NutritionTracker() {
     try { await Promise.all(meals.map((meal) => nutritionService.deleteLog(meal.id))); setMeals([]); } catch (clearError) { alert(clearError.message || "Unable to clear today's meals."); }
   };
 
+  const copyPreviousMeals = async () => {
+    if (!meals.length) return;
+    try {
+      await Promise.all(meals.map((meal) => nutritionService.addLog({ meal_date: getTodayDate(), meal_type: meal.mealType, food_name: meal.name, quantity: meal.quantity || null, quantity_unit: meal.quantity ? "g" : null, calories: meal.calories, protein_g: meal.protein, carbs_g: meal.carbs, fat_g: meal.fat })));
+      setMeals((current) => [...current, ...meals.map((meal) => ({ ...meal, id: `${meal.id}-copy-${Date.now()}` }))]);
+    } catch (error) {
+      alert(error.message || "Unable to copy yesterday's meals.");
+    }
+  };
+
   return (
     <div className="nutrition-container">
       <div className="nutrition-header">
@@ -228,6 +251,7 @@ export default function NutritionTracker() {
           <button onClick={clearToday} className="btn-danger">
             Clear Day
           </button>
+          <button onClick={copyPreviousMeals} className="btn-secondary" disabled={!meals.length}>Copy Meals</button>
         </div>
       </div>
 
@@ -288,40 +312,45 @@ export default function NutritionTracker() {
         <div className="summary-section">
           <h3>Today's Goal</h3>
           <div className="cards-grid">
-            <NutritionCard title="Calories" emoji="" value={goals.calories} unit="kcal" color="#ef4444" />
-            <NutritionCard title="Protein" emoji="" value={goals.protein} unit="g" color="#f97316" />
-            <NutritionCard title="Carbs" emoji="" value={goals.carbs} unit="g" color="#eab308" />
-            <NutritionCard title="Fat" emoji="" value={goals.fat} unit="g" color="#22c55e" />
+            <NutritionCard title="Calories" value={goals.calories} unit="kcal" color="#1d56c7" />
+            <NutritionCard title="Protein" value={goals.protein} unit="g" color="#1d56c7" />
+            <NutritionCard title="Carbs" value={goals.carbs} unit="g" color="#1d56c7" />
+            <NutritionCard title="Fat" value={goals.fat} unit="g" color="#1d56c7" />
           </div>
         </div>
 
         <div className="summary-section">
           <h3>Consumed</h3>
           <div className="cards-grid">
-            <NutritionCard title="Calories" emoji="" value={totals.calories.toFixed(0)} unit="kcal" color="#ef4444" />
-            <NutritionCard title="Protein" emoji="" value={totals.protein.toFixed(0)} unit="g" color="#f97316" />
-            <NutritionCard title="Carbs" emoji="" value={totals.carbs.toFixed(0)} unit="g" color="#eab308" />
-            <NutritionCard title="Fat" emoji="" value={totals.fat.toFixed(0)} unit="g" color="#22c55e" />
+            <NutritionCard title="Calories" value={totals.calories.toFixed(0)} unit="kcal" color="#1d56c7" />
+            <NutritionCard title="Protein" value={totals.protein.toFixed(0)} unit="g" color="#1d56c7" />
+            <NutritionCard title="Carbs" value={totals.carbs.toFixed(0)} unit="g" color="#1d56c7" />
+            <NutritionCard title="Fat" value={totals.fat.toFixed(0)} unit="g" color="#1d56c7" />
           </div>
         </div>
 
         <div className="summary-section remaining">
           <h3>Remaining</h3>
           <div className="cards-grid">
-            <NutritionCard title="Calories" emoji="" value={remaining.calories.toFixed(0)} unit="kcal" color="#ef4444" />
-            <NutritionCard title="Protein" emoji="" value={remaining.protein.toFixed(0)} unit="g" color="#f97316" />
-            <NutritionCard title="Carbs" emoji="" value={remaining.carbs.toFixed(0)} unit="g" color="#eab308" />
-            <NutritionCard title="Fat" emoji="" value={remaining.fat.toFixed(0)} unit="g" color="#22c55e" />
+            <NutritionCard title="Calories" value={remaining.calories.toFixed(0)} unit="kcal" color="#1d56c7" />
+            <NutritionCard title="Protein" value={remaining.protein.toFixed(0)} unit="g" color="#1d56c7" />
+            <NutritionCard title="Carbs" value={remaining.carbs.toFixed(0)} unit="g" color="#1d56c7" />
+            <NutritionCard title="Fat" value={remaining.fat.toFixed(0)} unit="g" color="#1d56c7" />
           </div>
         </div>
       </div>
 
       <div className="macro-progress">
-        <h3>Progress</h3>
-        <MacroBar label="Calories" consumed={totals.calories} goal={goals.calories} color="#ef4444" />
-        <MacroBar label="Protein" consumed={totals.protein} goal={goals.protein} color="#f97316" />
-        <MacroBar label="Carbs" consumed={totals.carbs} goal={goals.carbs} color="#eab308" />
-        <MacroBar label="Fat" consumed={totals.fat} goal={goals.fat} color="#22c55e" />
+        <div className="macro-heading"><h3>Progress</h3><div className="macro-view-toggle" role="group" aria-label="Macro display"><button type="button" className={macroView === "grams" ? "active" : ""} onClick={() => setMacroView("grams")}>Grams</button><button type="button" className={macroView === "percent" ? "active" : ""} onClick={() => setMacroView("percent")}>Percent</button><button type="button" className={macroView === "remaining" ? "active" : ""} onClick={() => setMacroView("remaining")}>Remaining</button></div></div>
+        <MacroBar label="Calories" consumed={totals.calories} goal={goals.calories} color="#1d56c7" displayValue={macroView === "grams" ? `${totals.calories.toFixed(0)} / ${goals.calories} kcal` : formatMacro(totals.calories, goals.calories)} />
+        <MacroBar label="Protein" consumed={totals.protein} goal={goals.protein} color="#1d56c7" displayValue={formatMacro(totals.protein, goals.protein)} />
+        <MacroBar label="Carbs" consumed={totals.carbs} goal={goals.carbs} color="#1d56c7" displayValue={formatMacro(totals.carbs, goals.carbs)} />
+        <MacroBar label="Fat" consumed={totals.fat} goal={goals.fat} color="#1d56c7" displayValue={formatMacro(totals.fat, goals.fat)} />
+      </div>
+
+      <div className="nutrition-support-row">
+        <article className="water-card"><div><p className="panel-kicker">Hydration</p><h3>{waterIntake} / 8 glasses</h3></div><div className="water-actions">{Array.from({ length: 8 }, (_, index) => <button type="button" key={index} className={index < waterIntake ? "filled" : ""} aria-label={`Set water to ${index + 1} glasses`} onClick={() => setWaterIntake(index + 1)} />)}</div><button type="button" className="btn-secondary" onClick={() => setWaterIntake((value) => Math.min(8, value + 1))}>Add glass</button></article>
+        {totals.protein < goals.protein * 0.5 && <article className="nutrition-nudge"><p className="panel-kicker">Daily nudge</p><h3>Protein is behind target</h3><p>Add a protein-rich meal to stay aligned with your goal.</p></article>}
       </div>
 
       <div className="meals-section">
@@ -460,7 +489,7 @@ export default function NutritionTracker() {
                       <div className="meal-info">
                         <h5>{meal.name}</h5>
                         <div className="meal-macros">
-                          <span>{meal.calories} cal</span>
+                          <span>{meal.calories} kcal{meal.quantity ? ` · ${meal.quantity}g` : ""}</span>
                           <span>{meal.protein.toFixed(1)}g protein</span>
                           <span>{meal.carbs.toFixed(1)}g carbs</span>
                           <span>{meal.fat.toFixed(1)}g fat</span>
@@ -471,7 +500,7 @@ export default function NutritionTracker() {
                         className="btn-remove"
                         aria-label="Remove meal"
                       >
-                        ✕
+                        Remove
                       </button>
                     </div>
                   ))}

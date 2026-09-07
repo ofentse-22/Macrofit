@@ -36,46 +36,14 @@ function calculateStreak(workouts) {
   return streak;
 }
 
-function ProgressChart({ data, valueKey, labelKey, color = "#60a5fa" }) {
-  const safeData = Array.isArray(data) && data.length > 0 ? data : [{ [labelKey]: "No data", [valueKey]: 0 }];
-  const values = safeData.map((entry) => Number(entry[valueKey]));
-  const min = Math.min(...values, 0) - 1;
-  const max = Math.max(...values, 5) + 1;
-
-  const points = values.map((value, index) => {
-    const x = 8 + (index * 84) / Math.max(values.length - 1, 1);
-    const y = 88 - ((value - min) / (max - min || 1)) * 72;
-    return `${x},${y}`;
-  }).join(" ");
-
-  return (
-    <div className="progress-chart">
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none">
-        <line x1="8" y1="16" x2="92" y2="16" className="chart-grid" />
-        <line x1="8" y1="52" x2="92" y2="52" className="chart-grid" />
-        <line x1="8" y1="88" x2="92" y2="88" className="chart-grid" />
-        <polyline points={points} className="chart-line" style={{ stroke: color }} />
-        {points.split(" ").map((point, i) => {
-          const [cx, cy] = point.split(",");
-          return <circle key={i} cx={cx} cy={cy} r="2" className="chart-dot" style={{ fill: color }} />;
-        })}
-      </svg>
-      <div className="chart-labels">
-        {safeData.map((entry, index) => (
-          <span key={index}>{entry[labelKey]}</span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-export default function Dashboard() {
+export default function Dashboard({ onNavigate }) {
   const [workouts, setWorkouts] = useState([]);
   const [bodyCompositionHistory, setBodyCompositionHistory] = useState([]);
   const [nutritionLog, setNutritionLog] = useState([]);
   const [weightHistory, setWeightHistory] = useState([]);
   const [nutritionGoals, setNutritionGoals] = useState({});
   const [profile, setProfile] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [goals, setGoals] = useState({ weight: "", strength: "" });
   const [goalForm, setGoalForm] = useState({ weight: "", strength: "" });
   const [reminders, setReminders] = useState(() => {
@@ -112,6 +80,9 @@ export default function Dashboard() {
       setNutritionGoals(savedNutritionGoals || {});
       setProfile(savedProfile);
       setGoals({ weight: savedGoal?.target_weight_kg ?? "", strength: savedGoal?.target_strength_kg ?? "" });
+      setIsLoading(false);
+    }).catch(() => {
+      if (active) setIsLoading(false);
     });
     return () => { active = false; };
   }, []);
@@ -152,6 +123,10 @@ export default function Dashboard() {
     };
   }, [reminders]);
 
+  if (isLoading) {
+    return <section className="dashboard dashboard-loading" aria-label="Loading dashboard"><div className="skeleton skeleton-heading" /><div className="skeleton-grid">{[1, 2, 3, 4].map((item) => <div className="skeleton skeleton-card" key={item} />)}</div><div className="skeleton skeleton-wide" /></section>;
+  }
+
   const progressData = bodyCompositionHistory.map((entry) => {
     const heightM = Number(profile?.height_cm) / 100;
     return { date: entry.measurement_date, bmi: heightM ? Number(entry.weight_kg) / (heightM * heightM) : 0 };
@@ -163,14 +138,6 @@ export default function Dashboard() {
   const completionRate = totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0;
   const currentStreak = calculateStreak(workouts);
   const recentBodyHistory = bodyCompositionHistory.slice(-3).reverse();
-  const bodyFatTrend = bodyCompositionHistory
-    .slice(-6)
-    .map((entry) => ({ label: entry.measurement_date || "Saved", bodyFat: Number(entry.body_fat_percentage) || 0 }));
-  const workoutTrend = workouts
-    .slice(0, 6)
-    .reverse()
-    .map((entry) => ({ label: entry.name || "Workout", completedRatio: entry.sets ? Math.round((entry.completed_sets || 0) / entry.sets * 100) : 0 }));
-
   // Nutrition data for today
   const today = new Date().toISOString().split("T")[0];
   const todayNutrition = nutritionLog;
@@ -182,12 +149,27 @@ export default function Dashboard() {
     { calories: 0, protein: 0 }
   );
   const nutritionGoal = Number(nutritionGoals.daily_calories) || 2500;
+  const proteinGoal = Number(nutritionGoals.daily_protein_g) || 150;
   const caloriesRemaining = Math.max(0, nutritionGoal - nutritionTotals.calories);
+  const calorieProgress = Math.min(100, Math.round((nutritionTotals.calories / nutritionGoal) * 100));
+  const proteinProgress = Math.min(100, Math.round((nutritionTotals.protein / proteinGoal) * 100));
+  const volume = workouts.reduce((sum, workout) => sum + (Number(workout.sets) || 0) * (Number(workout.reps) || 0), 0);
+  const nutritionDays = new Set(nutritionLog.map((meal) => meal.meal_date || meal.date).filter(Boolean));
+  const combinedStreak = currentStreak + (nutritionDays.size > 0 ? 1 : 0);
+  const recentFoods = nutritionLog.slice(0, 3);
+  const recentWorkout = workouts[0];
+
+  const quickLogFood = async (food) => {
+    try {
+      await nutritionService.addLog({ meal_date: today, meal_type: food.mealType || "snacks", food_name: food.name, quantity: food.quantity || null, quantity_unit: food.quantity ? "g" : null, calories: food.calories, protein_g: food.protein_g || food.protein, carbs_g: food.carbs_g || food.carbs, fat_g: food.fat_g || food.fat });
+      setNutritionLog((current) => [food, ...current]);
+    } catch (error) {
+      alert(error.message || "Unable to log this food.");
+    }
+  };
 
   // Weight data for today
   const todayWeight = weightHistory.find((entry) => entry.weight_date === today);
-  const previousWeight = weightHistory.length > 1 ? weightHistory[weightHistory.length - 2].weight_kg : null;
-  const weightChange = previousWeight && todayWeight ? (todayWeight.weight_kg - previousWeight).toFixed(1) : null;
 
   const shareProgress = async () => {
     const text = `FitTrack Progress: ${currentStreak} day streak | BMI: ${latestBmi} | ${totalExercises} exercises tracked`;
@@ -239,96 +221,51 @@ export default function Dashboard() {
 
   return (
     <section className="dashboard feature-panel">
-      <div className="section-heading">
+      <div className="dashboard-intro">
         <div>
-          <p className="eyebrow">Client dashboard</p>
-          <h2>Progress at a glance</h2>
+          <p className="eyebrow">{new Date().toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}</p>
+          <h2>Good to see you{profile?.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}.</h2>
+          <p className="dashboard-subtitle">Your training and nutrition, in one clear view.</p>
         </div>
-        <span className="status-pill">Active Plan</span>
+        <span className="status-pill">On track</span>
       </div>
+
+      <div className="daily-overview">
+        <article className="daily-panel training-panel">
+          <div className="daily-panel-heading"><span className="panel-kicker">Today’s Training</span><span className="panel-icon">TR</span></div>
+          <div className="training-summary-row"><div className="training-number">{completionRate}<small>%</small></div><div><strong>{completedSets} of {totalSets || 0} sets</strong><span>Completion for today’s plan</span></div></div>
+          <div className="metric-progress"><span style={{ width: `${completionRate}%` }} /></div>
+          <div className="daily-meta"><span>{totalExercises} exercises</span><span>{volume} total reps</span><span>Rest timer ready</span></div>
+        </article>
+        <article className="daily-panel nutrition-panel">
+          <div className="daily-panel-heading"><span className="panel-kicker">Today’s Nutrition</span><span className="panel-icon">NF</span></div>
+          <div className="nutrition-summary-row"><ProgressRing value={calorieProgress} /><div><strong>{nutritionTotals.calories.toFixed(0)} <small>/ {nutritionGoal} kcal</small></strong><span>{caloriesRemaining.toFixed(0)} kcal remaining</span></div></div>
+          <div className="protein-track"><div><span>Protein</span><strong>{nutritionTotals.protein.toFixed(0)} / {proteinGoal} g</strong></div><div className="metric-progress"><span style={{ width: `${proteinProgress}%` }} /></div></div>
+        </article>
+      </div>
+
+      <article className="streak-card"><div className="streak-mark">{combinedStreak}</div><div><p className="panel-kicker">Consistency streak</p><h3>{combinedStreak} active day{combinedStreak === 1 ? "" : "s"}</h3><span>Training and nutrition are moving together.</span></div><div className="streak-breakdown"><span>Training <strong>{currentStreak}</strong></span><span>Nutrition <strong>{nutritionDays.size > 0 ? 1 : 0}</strong></span></div></article>
 
       <div className="stats-grid">
-        <StatCard label="Current Streak" value={currentStreak + " days"} detail="Keep the momentum" />
-        <StatCard label="Current BMI" value={latestBmi} detail="Latest recorded" />
-        <StatCard label="Exercises" value={totalExercises} detail="In current workout" />
-        <StatCard label="Completion Rate" value={completionRate + "%"} detail="Sets finished" />
+        <StatCard label="Current Streak" value={`${currentStreak} days`} detail="Keep the momentum" icon="ST" />
+        <StatCard label="Weight / BMI" value={todayWeight ? `${Number(todayWeight.weight_kg).toFixed(1)} kg` : latestBmi} detail={todayWeight ? `BMI ${latestBmi}` : "Add a body check-in"} icon="WT" />
+        <StatCard label="Exercises" value={totalExercises} detail={`${volume} reps in plan`} icon="EX" />
+        <StatCard label="Completion" value={`${completionRate}%`} detail={`${completedSets} sets finished`} icon="CP" />
       </div>
 
-      <div className="chart-grid-stack">
-        <article className="trend-card">
-          <h4>Today's Nutrition</h4>
-          <p>Calorie and protein intake</p>
-          <div className="summary-stats">
-            <div className="summary-stat">
-              <span className="summary-label">Consumed</span>
-              <span className="summary-value">{nutritionTotals.calories.toFixed(0)}</span>
-              <span className="summary-unit">kcal</span>
-            </div>
-            <div className="summary-stat">
-              <span className="summary-label">Remaining</span>
-              <span className="summary-value">{caloriesRemaining.toFixed(0)}</span>
-              <span className="summary-unit">kcal</span>
-            </div>
-            <div className="summary-stat">
-              <span className="summary-label">Protein</span>
-              <span className="summary-value">{nutritionTotals.protein.toFixed(0)}</span>
-              <span className="summary-unit">g</span>
-            </div>
-          </div>
-        </article>
-
-        {todayWeight && (
-          <article className="trend-card">
-            <h4>Today's Weight</h4>
-            <p>Weight tracking</p>
-            <div className="summary-stats">
-              <div className="summary-stat">
-                <span className="summary-label">Today</span>
-                <span className="summary-value">{Number(todayWeight.weight_kg).toFixed(1)}</span>
-                <span className="summary-unit">kg</span>
-              </div>
-              {weightChange && (
-                <div className="summary-stat">
-                  <span className="summary-label">Change</span>
-                  <span className={`summary-value ${weightChange > 0 ? "positive" : "negative"}`}>
-                    {weightChange > 0 ? "+" : ""}{weightChange}
-                  </span>
-                  <span className="summary-unit">kg</span>
-                </div>
-              )}
-              {previousWeight && (
-                <div className="summary-stat">
-                  <span className="summary-label">Previous</span>
-                  <span className="summary-value">{Number(previousWeight).toFixed(1)}</span>
-                  <span className="summary-unit">kg</span>
-                </div>
-              )}
-            </div>
-          </article>
-        )}
+      <div className="weekly-recap">
+        <div><p className="eyebrow">Weekly recap</p><h3>A little consistency goes a long way.</h3><p>Track your volume, nutrition and personal records from the dedicated views.</p></div>
+        <div className="recap-metric"><strong>{volume}</strong><span>reps planned</span></div><div className="recap-metric"><strong>{nutritionTotals.protein.toFixed(0)}g</strong><span>protein today</span></div><div className="recap-metric"><strong>{bodyCompositionHistory.length}</strong><span>check-ins</span></div>
       </div>
 
-      <div className="dashboard-chart-card">
-        <div className="chart-header">
-          <h3>BMI Trend</h3>
-          <p>Your BMI progress over the past weeks</p>
+      <article className="quick-log-card">
+        <div><p className="eyebrow">Quick log</p><h3>Pick up where you left off</h3></div>
+        <div className="quick-log-actions">
+          {recentFoods.map((food) => <button type="button" key={food.id} onClick={() => quickLogFood(food)}><span>{food.name}</span><small>Log again</small></button>)}
+          {recentWorkout && <button type="button" onClick={() => onNavigate?.("training")}><span>{recentWorkout.name}</span><small>Open workout</small></button>}
+          {!recentFoods.length && !recentWorkout && <button type="button" onClick={() => onNavigate?.("health")}><span>Start your diary</span><small>Add your first meal</small></button>}
         </div>
-        <ProgressChart data={progressData} valueKey="bmi" labelKey="date" />
-      </div>
-
-      <div className="chart-grid-stack">
-        <article className="trend-card">
-          <h4>Body Fat Trend</h4>
-          <p>Recent body-fat snapshots from your analyzer</p>
-          <ProgressChart data={bodyFatTrend} valueKey="bodyFat" labelKey="label" color="#8b5cf6" />
-        </article>
-
-        <article className="trend-card">
-          <h4>Workout Completion</h4>
-          <p>How complete your latest saved workouts were</p>
-          <ProgressChart data={workoutTrend} valueKey="completedRatio" labelKey="label" color="#22c55e" />
-        </article>
-      </div>
+      </article>
 
       <div className="history-card">
         <div className="history-card-header">
@@ -422,10 +359,14 @@ export default function Dashboard() {
   );
 }
 
-function StatCard({ label, value, detail }) {
+function ProgressRing({ value }) {
+  return <div className="progress-ring" style={{ "--ring-progress": `${value * 3.6}deg` }}><div><strong>{value}%</strong><span>goal</span></div></div>;
+}
+
+function StatCard({ label, value, detail, icon }) {
   return (
     <article className="stat-card">
-      <p>{label}</p>
+      <div className="stat-card-top"><p>{label}</p><span className="stat-icon">{icon}</span></div>
       <strong>{value}</strong>
       <span>{detail}</span>
     </article>

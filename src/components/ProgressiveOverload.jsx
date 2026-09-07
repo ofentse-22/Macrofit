@@ -177,18 +177,19 @@ export default function ProgressiveOverload() {
                         <>
                           <polyline
                             points={exercise.history
+                              .filter((entry) => Number.isFinite(Number(entry.weight)))
                               .map((entry, i) => {
                                 const x = (i / (exercise.history.length - 1)) * 100;
                                 const maxWeight = Math.max(
-                                  ...exercise.history.map((e) => e.weight)
+                                  ...exercise.history.filter((e) => Number.isFinite(Number(e.weight))).map((e) => Number(e.weight))
                                 );
                                 const minWeight = Math.min(
-                                  ...exercise.history.map((e) => e.weight)
+                                  ...exercise.history.filter((e) => Number.isFinite(Number(e.weight))).map((e) => Number(e.weight))
                                 );
                                 const range = maxWeight - minWeight || 1;
                                 const y =
                                   50 -
-                                  ((entry.weight - minWeight) / range) * 40;
+                                  ((Number(entry.weight) - minWeight) / range) * 40;
                                 return `${x},${y}`;
                               })
                               .join(" ")}
