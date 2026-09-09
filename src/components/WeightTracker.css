@@ -1,3 +1,11 @@
+.offline-notice {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border: 1px solid #d89b35;
+  border-radius: 6px;
+  color: #f6d48b;
+  background: rgba(216, 155, 53, 0.12);
+}
 /* ==================== WEIGHT TRACKER ==================== */
 
 .weight-tracker-container {
@@ -348,14 +356,13 @@
 }
 
 .btn-primary {
-  background: #3b82f6;
+  background: var(--button-color) !important;
   color: white;
 }
 
 .btn-primary:hover {
-  background: #2563eb;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  background: var(--button-color) !important;
+  filter: brightness(1.1);
 }
 
 .btn-secondary {

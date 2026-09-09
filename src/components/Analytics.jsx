@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import './Analytics.css';
+import { nutritionService, weightService, workoutService } from '../services/supabaseService';
 
 function SimpleLineChart({ data, dataKey, color, height = 200 }) {
   const safeData = (Array.isArray(data) ? data : [])
@@ -41,117 +42,93 @@ function SimpleLineChart({ data, dataKey, color, height = 200 }) {
   );
 }
 
-export default function Analytics() {
+function DualLineChart({ data, firstKey, secondKey, firstLabel, secondLabel }) {
+  const safeData = (Array.isArray(data) ? data : []).map((entry) => ({
+    ...entry,
+    [firstKey]: Number.isFinite(Number(entry[firstKey])) ? Number(entry[firstKey]) : 0,
+    [secondKey]: Number.isFinite(Number(entry[secondKey])) ? Number(entry[secondKey]) : 0,
+  }));
+  if (!safeData.length) return <div className="empty-chart">Not enough data for this comparison yet.</div>;
+  const values = safeData.flatMap((entry) => [entry[firstKey], entry[secondKey]]);
+  const min = Math.min(...values);
+  const range = Math.max(...values) - min || 1;
+  const path = (key) => safeData.map((entry, index) => {
+    const x = (index / Math.max(safeData.length - 1, 1)) * 100;
+    const y = 94 - ((entry[key] - min) / range) * 82;
+    return `${index ? "L" : "M"} ${x} ${y}`;
+  }).join(" ");
+  return <div className="dual-chart"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d={path(firstKey)} className="chart-line" style={{ stroke: "var(--accent-color)" }} /><path d={path(secondKey)} className="chart-line" style={{ stroke: "#7ea6f5" }} /></svg><div className="dual-chart-legend"><span><i className="legend-dot primary" />{firstLabel}</span><span><i className="legend-dot secondary" />{secondLabel}</span></div></div>;
+}
+
+export default function Analytics({ onNavigate }) {
   const [data, setData] = useState({
     weightTrend: [],
     caloriesTrend: [],
     workoutTrend: [],
     volumeTrend: [],
+    volumeWeightTrend: [],
+    calorieBalanceTrend: [],
     stats: {},
   });
   const [timeRange, setTimeRange] = useState('month');
   const [loading, setLoading] = useState(true);
 
-  const loadAnalyticsData = useCallback(() => {
+  const loadAnalyticsData = useCallback(async () => {
     try {
-      const weightHistory = JSON.parse(localStorage.getItem('weightHistory') || '[]');
-      const nutritionLog = JSON.parse(localStorage.getItem('nutritionLog') || '[]');
-      const workoutHistory = JSON.parse(localStorage.getItem('workoutHistory') || '[]');
-
-      // Filter by time range
       const now = new Date();
-      let startDate = new Date();
-
-      if (timeRange === 'week') {
-        startDate.setDate(now.getDate() - 7);
-      } else if (timeRange === 'month') {
-        startDate.setMonth(now.getMonth() - 1);
-      } else if (timeRange === 'year') {
-        startDate.setFullYear(now.getFullYear() - 1);
-      }
-
-      // Process weight trend
-      const filteredWeight = weightHistory.filter(w => new Date(w.date) >= startDate).sort((a, b) => new Date(a.date) - new Date(b.date));
-
-      // Process calorie trend
+      const startDate = new Date(now);
+      if (timeRange === 'week') startDate.setDate(now.getDate() - 7);
+      if (timeRange === 'month') startDate.setMonth(now.getMonth() - 1);
+      if (timeRange === 'year') startDate.setFullYear(now.getFullYear() - 1);
+      const start = startDate.toISOString().slice(0, 10);
+      const end = now.toISOString().slice(0, 10);
+      const [weightHistory, nutritionLog, workoutHistory, nutritionGoals] = await Promise.all([
+        weightService.getLogsForRange(start, end),
+        nutritionService.getLogsByDateRange(start, end),
+        workoutService.getWorkouts(),
+        nutritionService.getGoals(),
+      ]);
+      const filteredWorkouts = workoutHistory.filter((workout) => {
+        const date = (workout.created_at || '').slice(0, 10);
+        return date >= start && date <= end;
+      });
       const dailyCalories = {};
-      nutritionLog.forEach(meal => {
-        const date = meal.date;
-        if (new Date(date) >= startDate) {
-          dailyCalories[date] = (dailyCalories[date] || 0) + (meal.calories || 0);
-        }
-      });
-      const caloriesTrend = Object.entries(dailyCalories)
-        .sort(([a], [b]) => new Date(a) - new Date(b))
-        .map(([date, calories]) => ({
-          date,
-          calories: Math.round(calories),
-        }));
-
-      // Process workout trend
+      nutritionLog.forEach((meal) => { dailyCalories[meal.meal_date] = (dailyCalories[meal.meal_date] || 0) + (Number(meal.calories) || 0); });
+      const caloriesTrend = Object.entries(dailyCalories).sort(([a], [b]) => a.localeCompare(b)).map(([date, calories]) => ({ date, calories: Math.round(calories) }));
       const dailyWorkouts = {};
-      workoutHistory.forEach(workout => {
-        const date = new Date(workout.completedAt).toISOString().split('T')[0];
-        if (new Date(date) >= startDate) {
-          dailyWorkouts[date] = (dailyWorkouts[date] || 0) + 1;
-        }
-      });
-      const workoutTrend = Object.entries(dailyWorkouts)
-        .sort(([a], [b]) => new Date(a) - new Date(b))
-        .map(([date, count]) => ({ date, count }));
-
-      // Process volume trend
       const dailyVolume = {};
-      workoutHistory.forEach(workout => {
-        const date = new Date(workout.completedAt).toISOString().split('T')[0];
-        if (new Date(date) >= startDate) {
-          dailyVolume[date] = (dailyVolume[date] || 0) + (workout.totalSets || 0);
-        }
+      filteredWorkouts.forEach((workout) => {
+        const date = (workout.created_at || '').slice(0, 10);
+        dailyWorkouts[date] = (dailyWorkouts[date] || 0) + 1;
+        dailyVolume[date] = (dailyVolume[date] || 0) + (Number(workout.sets) || 0);
       });
-      const volumeTrend = Object.entries(dailyVolume)
-        .sort(([a], [b]) => new Date(a) - new Date(b))
-        .map(([date, sets]) => ({ date, sets }));
-
-      // Calculate stats
-      const avgWeight = filteredWeight.length > 0
-        ? (filteredWeight.reduce((sum, w) => sum + w.weight, 0) / filteredWeight.length).toFixed(1)
-        : 0;
-
-      const avgCalories = caloriesTrend.length > 0
-        ? Math.round(caloriesTrend.reduce((sum, c) => sum + c.calories, 0) / caloriesTrend.length)
-        : 0;
-
-      const totalSets = workoutHistory
-        .filter(w => new Date(w.completedAt) >= startDate)
-        .reduce((sum, w) => sum + (w.totalSets || 0), 0);
-
-      const avgSetsPerWorkout = workoutHistory.filter(w => new Date(w.completedAt) >= startDate).length > 0
-        ? (totalSets / workoutHistory.filter(w => new Date(w.completedAt) >= startDate).length).toFixed(1)
-        : 0;
-
-      const completionRate = workoutHistory.filter(w => new Date(w.completedAt) >= startDate).length > 0
-        ? Math.round(
-          (workoutHistory.filter(w => new Date(w.completedAt) >= startDate && w.completedRatio === 100).length /
-            workoutHistory.filter(w => new Date(w.completedAt) >= startDate).length) * 100
-        )
-        : 0;
-
+      const workoutTrend = Object.entries(dailyWorkouts).sort(([a], [b]) => a.localeCompare(b)).map(([date, count]) => ({ date, count }));
+      const volumeTrend = Object.entries(dailyVolume).sort(([a], [b]) => a.localeCompare(b)).map(([date, sets]) => ({ date, sets }));
+      const weightByDate = Object.fromEntries(weightHistory.map((entry) => [entry.weight_date, Number(entry.weight_kg) || 0]));
+      const combinedDates = [...new Set([...Object.keys(dailyVolume), ...Object.keys(weightByDate)])].sort();
+      const volumeWeightTrend = combinedDates.map((date) => ({ date, volume: dailyVolume[date] || 0, weight: weightByDate[date] || 0 }));
+      const calorieTarget = Number(nutritionGoals?.daily_calories) || 2500;
+      const calorieBalanceTrend = caloriesTrend.map((entry) => ({ date: entry.date, intake: entry.calories, target: calorieTarget }));
+      const totalSets = filteredWorkouts.reduce((sum, workout) => sum + (Number(workout.sets) || 0), 0);
+      const completedSets = filteredWorkouts.reduce((sum, workout) => sum + (Number(workout.completed_sets) || 0), 0);
       setData({
-        weightTrend: filteredWeight,
+        weightTrend: weightHistory.map((entry) => ({ date: entry.weight_date, weight: Number(entry.weight_kg) || 0 })).sort((a, b) => a.date.localeCompare(b.date)),
         caloriesTrend,
         workoutTrend,
         volumeTrend,
+        volumeWeightTrend,
+        calorieBalanceTrend,
         stats: {
-          avgWeight,
-          avgCalories,
+          avgWeight: weightHistory.length ? (weightHistory.reduce((sum, entry) => sum + (Number(entry.weight_kg) || 0), 0) / weightHistory.length).toFixed(1) : 0,
+          avgCalories: caloriesTrend.length ? Math.round(caloriesTrend.reduce((sum, entry) => sum + entry.calories, 0) / caloriesTrend.length) : 0,
           totalSets,
-          avgSetsPerWorkout,
-          completionRate,
+          avgSetsPerWorkout: filteredWorkouts.length ? (totalSets / filteredWorkouts.length).toFixed(1) : 0,
+          completionRate: totalSets ? Math.round((completedSets / totalSets) * 100) : 0,
         },
       });
-      setLoading(false);
     } catch (error) {
       console.error('Error loading analytics:', error);
+    } finally {
       setLoading(false);
     }
   }, [timeRange]);
@@ -169,6 +146,11 @@ export default function Analytics() {
 
   if (loading) {
     return <div className="analytics-container loading">Loading analytics...</div>;
+  }
+
+  const hasProgressData = data.weightTrend.length || data.caloriesTrend.length || data.workoutTrend.length || data.volumeTrend.length;
+  if (!hasProgressData) {
+    return <div className="analytics-container progress-empty"><div className="empty-state-panel"><p className="panel-kicker">Progress starts with one entry</p><h3>No progress data yet</h3><p>Log a workout or meal and your trends will appear here.</p><button type="button" onClick={() => onNavigate?.("training")}>Log your first workout</button></div></div>;
   }
 
   return (
@@ -226,6 +208,11 @@ export default function Analytics() {
       {/* Charts */}
       <section className="charts-section">
         <h3>Trends</h3>
+
+        <div className="combined-chart-grid">
+          <div className="chart-card"><h4>Volume and body weight</h4><p>Daily training volume beside your latest weight entries.</p><DualLineChart data={data.volumeWeightTrend} firstKey="volume" secondKey="weight" firstLabel="Volume" secondLabel="Weight" /></div>
+          <div className="chart-card"><h4>Calories and daily goal</h4><p>Intake compared with your daily calorie goal.</p><DualLineChart data={data.calorieBalanceTrend} firstKey="intake" secondKey="target" firstLabel="Intake" secondLabel="Daily Goal" /></div>
+        </div>
 
         {data.weightTrend.length > 0 && (
           <div className="chart-card">

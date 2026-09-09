@@ -1,3 +1,5 @@
+import ExerciseImage from "./ExerciseImage";
+
 export default function ExerciseCard({ exercise, isFavorite, onToggleFavorite }) {
   return (
     <div className="exercise-card">
@@ -14,13 +16,7 @@ export default function ExerciseCard({ exercise, isFavorite, onToggleFavorite })
       <p><strong>Category:</strong> {exercise.category}</p>
       <p>{exercise.instructions}</p>
 
-      {exercise.image && (
-        <img
-          src={exercise.image}
-          alt={exercise.name}
-          className="exercise-image"
-        />
-      )}
+      <ExerciseImage src={exercise.image} name={exercise.name} />
     </div>
   );
 }

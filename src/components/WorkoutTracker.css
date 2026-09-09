@@ -1,14 +1,16 @@
 .workout-container {
   width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
 }
 
 .workout-card {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
-  border-radius: 22px;
+  border-radius: var(--radius-card, 12px);
   padding: 24px;
   text-align: left;
-  box-shadow: 0 20px 45px var(--shadow-color);
+  box-shadow: var(--elevation-subtle);
 }
 
 .workout-card h2 {
@@ -20,7 +22,7 @@
   display: grid;
   gap: 18px;
   padding: 18px;
-  border-radius: 18px;
+  border-radius: var(--radius-card, 12px);
   background: var(--card-bg-strong);
   border: 1px solid var(--border-color);
 }
@@ -41,16 +43,15 @@
 
 button {
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-control, 9px);
   cursor: pointer;
   font: inherit;
   font-weight: 750;
   padding: 10px 14px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  transition: border-color 0.15s ease, background 0.15s ease, filter 0.15s ease;
 }
 
 button:hover {
-  transform: translateY(-1px);
   filter: brightness(1.05);
 }
 
@@ -65,7 +66,7 @@ button:disabled {
 .btn-complete {
   background: linear-gradient(135deg, #22c55e, #0ea5e9);
   color: #f8fafc;
-  box-shadow: 0 10px 22px rgba(14, 165, 233, 0.2);
+  border: 1px solid var(--accent-color);
 }
 
 .btn-cancel,
@@ -95,14 +96,17 @@ button:disabled {
   background: var(--card-bg-strong);
 }
 
+.empty-message button { margin-top: 14px; }
+.workout-loading { color: var(--text-secondary); padding: 12px 0; }
+
 .exercise-item {
   border: 1px solid var(--border-color);
-  border-radius: 16px;
+  border-radius: var(--radius-card, 12px);
   display: grid;
   gap: 16px;
   padding: 16px;
   background: var(--card-bg-strong);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+  box-shadow: var(--elevation-subtle);
 }
 
 .exercise-header {
@@ -126,7 +130,7 @@ button:disabled {
 .exercise-stats span,
 .rest-badge {
   background: var(--button-muted-bg);
-  border-radius: 999px;
+  border-radius: 6px;
   color: var(--text-secondary);
   font-size: 13px;
   padding: 4px 9px;
@@ -210,6 +214,15 @@ button:disabled {
   box-shadow: 0 10px 24px var(--shadow-color);
 }
 
+.exercise-image-placeholder {
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg, var(--card-bg), var(--input-bg));
+  color: var(--accent-color);
+  font-size: 2rem;
+  font-weight: 800;
+}
+
 .exercise-info {
   flex: 1;
   min-width: 200px;
@@ -217,10 +230,10 @@ button:disabled {
 
 .exercise-actions {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 8px;
   margin-left: auto;
-  min-width: 90px;
+  align-items: center;
 }
 
 .btn-edit, .btn-delete {
@@ -228,6 +241,23 @@ button:disabled {
   font-size: 0.85rem;
   white-space: nowrap;
 }
+
+.exercise-controls {
+  justify-content: flex-end;
+  border-top: 1px solid var(--border-color);
+  padding-top: 14px;
+}
+
+.btn-reset,
+.btn-edit {
+  background: var(--button-muted-bg) !important;
+  border-color: var(--button-muted-border) !important;
+  color: var(--button-muted-text) !important;
+  box-shadow: none !important;
+}
+
+.btn-delete { background: #8f3140 !important; border-color: #a63b4b !important; box-shadow: none !important; }
+.btn-complete { background: var(--button-color) !important; border-color: #2b9bd2 !important; }
 
 @media (max-width: 680px) {
   .exercise-header {
@@ -239,8 +269,11 @@ button:disabled {
     flex-direction: row;
     margin-left: 0;
     margin-top: 12px;
-    justify-content: flex-end;
+    justify-content: flex-start;
   }
+
+  .exercise-controls { justify-content: stretch; }
+  .exercise-controls button { flex: 1; }
 
   .workout-image {
     width: 100%;

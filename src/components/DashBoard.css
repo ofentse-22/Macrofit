@@ -14,7 +14,7 @@
 .skeleton-card { height: 130px; }
 .skeleton-wide { height: 220px; }
 
-.quick-log-card { display: grid; grid-template-columns: minmax(180px, 0.35fr) 1fr; gap: 18px; align-items: center; padding: 16px; border: 1px solid var(--border-color); border-radius: 16px; background: var(--card-bg); }
+.quick-log-card { display: grid; grid-template-columns: minmax(180px, 0.35fr) 1fr; gap: 18px; align-items: center; padding: 16px; border: 1px solid var(--border-color); border-radius: var(--radius-card, 12px); background: var(--card-bg); box-shadow: var(--elevation-subtle); }
 .quick-log-card h3 { margin-top: 4px; color: var(--text-primary); }
 .quick-log-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .quick-log-actions button { display: flex; min-width: 140px; flex: 1; flex-direction: column; align-items: flex-start; gap: 3px; padding: 11px 13px; text-align: left; }
@@ -51,9 +51,24 @@
 .weekly-recap {
   background: linear-gradient(145deg, var(--card-bg-strong), var(--card-bg));
   border: 1px solid var(--border-color);
-  border-radius: 16px;
+  border-radius: var(--radius-card, 12px);
   padding: 18px;
+  box-shadow: var(--elevation-subtle);
 }
+
+.clickable-panel { cursor: pointer; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+.clickable-panel:hover, .clickable-panel:focus-visible { border-color: var(--accent-color); box-shadow: 0 10px 24px var(--shadow-color); outline: none; }
+.dashboard-ctas { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.dashboard-ctas button { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; font-weight: 800; }
+.dashboard-ctas span { font-size: 1.2rem; }
+.empty-card-action { margin: -4px 0 2px; padding: 0; border: 0 !important; background: transparent !important; box-shadow: none !important; color: var(--accent-color) !important; font-size: 0.78rem; font-weight: 800; }
+.first-run-panel { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 18px; align-items: end; padding: 22px; border: 1px solid var(--accent-border); border-radius: 12px; background: var(--card-bg-strong); }
+.first-run-panel h3 { margin: 5px 0; color: var(--text-primary); }
+.first-run-panel p:last-child { color: var(--text-secondary); font-size: 0.88rem; }
+.first-run-fields { display: flex; gap: 10px; }
+.first-run-fields label { display: grid; gap: 6px; color: var(--text-secondary); font-size: 0.76rem; font-weight: 800; }
+.first-run-fields input { width: 145px; }
+.first-run-fields small { font-weight: 500; }
 
 .daily-panel-heading,
 .stat-card-top,
@@ -628,6 +643,9 @@
 }
 
 @media (max-width: 768px) {
+  .first-run-panel { grid-template-columns: 1fr; align-items: stretch; }
+  .first-run-fields { flex-direction: column; }
+  .first-run-fields input { width: 100%; }
   .quick-log-card { grid-template-columns: 1fr; }
   .skeleton-grid { grid-template-columns: repeat(2, 1fr); }
 

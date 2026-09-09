@@ -1,13 +1,6 @@
 import { useEffect, useState } from "react";
 import "./WorkoutCalendar.css";
-
-function getSavedHistory() {
-  try {
-    return JSON.parse(localStorage.getItem("workoutHistory") || "[]");
-  } catch {
-    return [];
-  }
-}
+import { workoutService } from "../services/supabaseService";
 
 export default function WorkoutCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -16,18 +9,27 @@ export default function WorkoutCalendar() {
   const [selectedWorkout, setSelectedWorkout] = useState(null);
 
   useEffect(() => {
-    const history = getSavedHistory();
-    const daysMap = {};
-
-    history.forEach((workout) => {
-      const date = new Date(workout.completedAt).toDateString();
-      if (!daysMap[date]) {
-        daysMap[date] = [];
-      }
-      daysMap[date].push(workout);
+    let active = true;
+    queueMicrotask(async () => {
+      const workouts = await workoutService.getWorkouts();
+      if (!active) return;
+      const daysMap = {};
+      workouts.forEach((workout) => {
+        const date = new Date(workout.completed_at || workout.created_at).toDateString();
+        if (!daysMap[date]) daysMap[date] = [];
+        daysMap[date].push({
+          ...workout,
+          title: workout.name,
+          completedAt: workout.completed_at || workout.created_at,
+          completedRatio: workout.sets ? Math.round((Number(workout.completed_sets || 0) / Number(workout.sets)) * 100) : 0,
+          exercises: [{ name: workout.name }],
+          totalSets: Number(workout.sets) || 0,
+          completedSets: Number(workout.completed_sets) || 0,
+        });
+      });
+      setWorkoutDays(daysMap);
     });
-
-    setWorkoutDays(daysMap);
+    return () => { active = false; };
   }, []);
 
   const getDaysInMonth = (date) => {

@@ -80,7 +80,7 @@ export default function UserProfile() {
       setTimeout(() => setMessage(''), 3000);
     } catch (error) {
       console.error('Error saving profile:', error);
-      setMessage('Error saving profile: ' + error.message);
+      setMessage('Unable to save your profile. Please try again.');
     } finally {
       setSaving(false);
     }

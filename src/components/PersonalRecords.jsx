@@ -82,7 +82,7 @@ export default function PersonalRecords() {
     loadPersonalRecords();
   }, []);
 
-  const getEmojiForExercise = (name) => {
+  const getEmojiForExercise = () => {
     return '';
   };
 

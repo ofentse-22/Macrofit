@@ -58,7 +58,7 @@ export default function WorkoutTemplates() {
       .insert(newExercises);
 
     if (error) {
-      alert("Error loading template: " + error.message);
+      alert("Unable to load templates. Please try again.");
     } else {
       alert(`Template "${template.name}" loaded successfully!`);
       window.location.reload(); // Refresh WorkoutTracker
@@ -83,7 +83,7 @@ export default function WorkoutTemplates() {
       alert(`Template "${customName}" saved to your account.`);
       setCustomName("");
       setCustomExercises([]);
-    } catch (error) { alert(error.message || "Unable to save template. Please log in and try again."); }
+    } catch { alert("Unable to save template. Please try again."); }
   };
 
   return (

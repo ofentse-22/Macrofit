@@ -17,6 +17,17 @@ This creates:
 - ✅ Indexes for performance
 - ✅ User data isolation
 
+### Production migration reminder
+
+For an existing Supabase project, run this migration before publishing so exercise calories are attributed to the day sets were completed:
+
+```sql
+ALTER TABLE workouts
+ADD COLUMN IF NOT EXISTS last_completed_at timestamptz;
+```
+
+The same idempotent migration is included in `supabase/schema.sql`.
+
 ### Step 2: Verify RLS is Working
 
 In SQL Editor, run:

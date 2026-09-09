@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import './WorkoutGenerator.css';
 
 export default function WorkoutGenerator() {
@@ -11,13 +11,14 @@ export default function WorkoutGenerator() {
     duration: 'moderate',
   });
   const [generatedPlan, setGeneratedPlan] = useState(null);
-  const [savedPlans, setSavedPlans] = useState([]);
+  const [savedPlans, setSavedPlans] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('workoutPlans') || '[]');
+    } catch {
+      return [];
+    }
+  });
   const [message, setMessage] = useState('');
-
-  useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('workoutPlans') || '[]');
-    setSavedPlans(saved);
-  }, []);
 
   const workoutTemplates = {
     muscle: {
@@ -459,24 +460,60 @@ export default function WorkoutGenerator() {
     },
   };
 
+  const fallbackExercisePools = {
+    full: [
+      ['Barbell Bench Press', 'Chest'], ['Barbell Rows', 'Back'], ['Barbell Squats', 'Legs'],
+      ['Romanian Deadlifts', 'Hamstrings'], ['Barbell Overhead Press', 'Shoulders'], ['Lat Pulldowns', 'Back'],
+      ['Leg Press', 'Legs'], ['Cable Rows', 'Back'], ['Lateral Raises', 'Shoulders'], ['Plank', 'Core'],
+    ],
+    dumbbells: [
+      ['Dumbbell Bench Press', 'Chest'], ['Dumbbell Rows', 'Back'], ['Goblet Squats', 'Legs'],
+      ['Dumbbell Romanian Deadlifts', 'Hamstrings'], ['Dumbbell Overhead Press', 'Shoulders'], ['Dumbbell Lunges', 'Legs'],
+      ['Dumbbell Curls', 'Arms'], ['Dumbbell Flyes', 'Chest'], ['Lateral Raises', 'Shoulders'], ['Plank', 'Core'],
+    ],
+    bodyweight: [
+      ['Push-ups', 'Chest'], ['Inverted Rows', 'Back'], ['Bodyweight Squats', 'Legs'],
+      ['Glute Bridges', 'Glutes'], ['Pike Push-ups', 'Shoulders'], ['Walking Lunges', 'Legs'],
+      ['Mountain Climbers', 'Conditioning'], ['Dips (Assisted)', 'Arms'], ['Plank Hold', 'Core'], ['Leg Raises', 'Core'],
+    ],
+  };
+
+  const buildFallbackWorkouts = (goal, equipment, frequency) => {
+    const pool = fallbackExercisePools[equipment] || fallbackExercisePools.full;
+    const goalSettings = {
+      muscle: { reps: '8-12', rest: 75, focus: 'Hypertrophy' },
+      strength: { reps: '4-8', rest: 120, focus: 'Strength' },
+      'weight-loss': { reps: '12-15', rest: 40, focus: 'Conditioning' },
+    }[goal] || { reps: '8-12', rest: 75, focus: 'Full Body' };
+
+    return Array.from({ length: frequency }, (_, dayIndex) => {
+      const start = (dayIndex * 3) % pool.length;
+      const selected = Array.from({ length: 5 }, (_, offset) => pool[(start + offset) % pool.length]);
+      return {
+        name: `Day ${dayIndex + 1}`,
+        focus: goalSettings.focus,
+        exercises: selected.map(([name]) => ({ name, sets: goal === 'strength' ? 4 : 3, reps: goalSettings.reps, rest: goalSettings.rest })),
+      };
+    });
+  };
+
   const generateWorkoutPlan = () => {
     const { goal, experience, equipment, frequency } = preferences;
-    const templates = workoutTemplates[goal]?.[equipment]?.[frequency];
+    const templates = workoutTemplates[goal]?.[equipment]?.[frequency] || buildFallbackWorkouts(goal, equipment, frequency);
 
-    if (templates) {
-      const plan = {
-        id: Date.now(),
-        name: `${goal.charAt(0).toUpperCase() + goal.slice(1)} Program (${frequency}x/week)`,
-        goal,
-        experience,
-        equipment,
-        frequency,
-        createdAt: new Date().toISOString(),
-        workouts: templates,
-      };
-      setGeneratedPlan(plan);
-      setStep(3);
-    }
+    const plan = {
+      id: Date.now(),
+      name: `${goal.charAt(0).toUpperCase() + goal.slice(1)} Program (${frequency}x/week)`,
+      goal,
+      experience,
+      equipment,
+      frequency,
+      createdAt: new Date().toISOString(),
+      workouts: templates,
+    };
+    setGeneratedPlan(plan);
+    setStep(3);
+    setMessage('');
   };
 
   const savePlan = () => {
@@ -516,16 +553,17 @@ export default function WorkoutGenerator() {
               <h3>What's your fitness goal?</h3>
               <div className="option-grid">
                 {[
-                  { value: 'muscle', label: 'Build Muscle', icon: 'ᪧ' },
-                  { value: 'strength', label: 'Build Strength', icon: '᪣' },
-                  { value: 'weight-loss', label: 'Lose Weight', icon: '᪤' },
+                  { value: 'muscle', label: 'Build Muscle' },
+                  { value: 'strength', label: 'Build Strength' },
+                  { value: 'weight-loss', label: 'Lose Weight' },
                 ].map(option => (
                   <button
+                    type="button"
                     key={option.value}
                     className={`option-button ${preferences.goal === option.value ? 'active' : ''}`}
-                    onClick={() => setPreferences({ ...preferences, goal: option.value })}
+                    onClick={() => setPreferences((current) => ({ ...current, goal: option.value }))}
+                    aria-pressed={preferences.goal === option.value}
                   >
-                    <span className="option-icon">{option.icon}</span>
                     <span>{option.label}</span>
                   </button>
                 ))}
@@ -541,9 +579,11 @@ export default function WorkoutGenerator() {
                   { value: 'advanced', label: 'Advanced' },
                 ].map(option => (
                   <button
+                    type="button"
                     key={option.value}
                     className={`option-button ${preferences.experience === option.value ? 'active' : ''}`}
-                    onClick={() => setPreferences({ ...preferences, experience: option.value })}
+                    onClick={() => setPreferences((current) => ({ ...current, experience: option.value }))}
+                    aria-pressed={preferences.experience === option.value}
                   >
                     {option.label}
                   </button>
@@ -560,9 +600,11 @@ export default function WorkoutGenerator() {
                   { value: 'bodyweight', label: 'Bodyweight' },
                 ].map(option => (
                   <button
+                    type="button"
                     key={option.value}
                     className={`option-button ${preferences.equipment === option.value ? 'active' : ''}`}
-                    onClick={() => setPreferences({ ...preferences, equipment: option.value })}
+                    onClick={() => setPreferences((current) => ({ ...current, equipment: option.value }))}
+                    aria-pressed={preferences.equipment === option.value}
                   >
                     {option.label}
                   </button>
@@ -573,7 +615,8 @@ export default function WorkoutGenerator() {
             <div className="form-section">
               <h3>How many days per week?</h3>
               <div className="frequency-slider">
-                <input
+                  <input
+                    aria-label="Training days per week"
                   type="range"
                   min="3"
                   max="6"
@@ -585,7 +628,7 @@ export default function WorkoutGenerator() {
             </div>
 
             <div className="form-actions">
-              <button className="primary-button" onClick={() => { generateWorkoutPlan(); setStep(3); }}>
+              <button type="button" className="primary-button" onClick={generateWorkoutPlan}>
                 Generate Plan
               </button>
             </div>

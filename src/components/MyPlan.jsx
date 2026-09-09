@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { goalsService, weightService, workoutService, streakService, analyticsService } from '../services/supabaseService';
 import './MyPlan.css';
 
@@ -19,7 +19,7 @@ export default function MyPlan() {
     loadPlanData();
   }, []);
 
-  const loadPlanData = async () => {
+  async function loadPlanData() {
     setLoading(true);
     try {
       const [userGoal, latestWeight, workouts, streak] = await Promise.all([
@@ -93,8 +93,8 @@ export default function MyPlan() {
       setGoal(updated);
       setShowEditGoal(false);
       loadPlanData();
-    } catch (error) {
-      alert('Error saving goal: ' + error.message);
+    } catch {
+      alert('Unable to save your plan goal. Please try again.');
     }
   };
 

@@ -7,7 +7,7 @@ export default function AuthPanel() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [signupProfile, setSignupProfile] = useState({ gender: "", age: "", height_cm: "", weight_kg: "" });
+  const [signupProfile] = useState({ gender: "", age: "", height_cm: "", weight_kg: "" });
   const [user, setUser] = useState(null);
   const [message, setMessage] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -57,15 +57,15 @@ export default function AuthPanel() {
         setUser(data.user);
         setMessage({ type: "success", text: "Logged in successfully." });
       }
-    } catch (error) {
-      setMessage({ type: "error", text: error.message || "Authentication failed. Please try again." });
+    } catch {
+      setMessage({ type: "error", text: "Authentication failed. Check your details and try again." });
     } finally { setIsSubmitting(false); }
   };
 
   const logout = async () => {
     setIsSubmitting(true);
     const { error } = await supabase.auth.signOut();
-    if (error) setMessage({ type: "error", text: error.message });
+    if (error) setMessage({ type: "error", text: "Unable to log out right now. Please try again." });
     else { setUser(null); setPassword(""); setMessage({ type: "success", text: "You have been logged out." }); }
     setIsSubmitting(false);
   };

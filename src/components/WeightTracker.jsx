@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import "./WeightTracker.css";
-import { weightService } from "../services/supabaseService";
+import { goalsService, weightService } from "../services/supabaseService";
+import { cancelQueuedCreate, enqueue, updateQueuedCreate } from "../services/offlineQueue";
 
 function getTodayDate() {
   const today = new Date();
@@ -59,19 +60,23 @@ function ProgressChart({ data, valueKey, labelKey, color = "#60a5fa" }) {
 
 export default function WeightTracker({ autoOpen = false }) {
   const [weightHistory, setWeightHistory] = useState([]);
-
-  const [weightGoals, setWeightGoals] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem("weightGoals") || "{}");
-    } catch {
-      return {};
-    }
-  });
+  // Weight goals now come exclusively from Supabase; the localStorage migration is complete.
+  const [weightGoals, setWeightGoals] = useState({});
 
   const [showWeightForm, setShowWeightForm] = useState(autoOpen);
   const [newWeight, setNewWeight] = useState("");
   const [showGoalForm, setShowGoalForm] = useState(false);
   const [goalForm, setGoalForm] = useState(weightGoals);
+  const [offlineMessage, setOfflineMessage] = useState("");
+
+  useEffect(() => {
+    goalsService.getGoal().then((goal) => {
+      if (!goal) return;
+      const savedGoals = { startingWeight: goal.current_weight_kg || "", goalWeight: goal.target_weight_kg || "" };
+      setWeightGoals(savedGoals);
+      setGoalForm(savedGoals);
+    }).catch(() => {});
+  }, []);
 
   const loadWeightHistory = useCallback(async () => {
     const logs = await weightService.getLogsForRange("2000-01-01", getTodayDate());
@@ -147,38 +152,91 @@ export default function WeightTracker({ autoOpen = false }) {
     if (!newWeight) return;
 
     try {
-      await weightService.addLog(Number(newWeight), today);
+      if (!navigator.onLine) {
+        const clientId = crypto.randomUUID();
+        enqueue({ type: "weightLog", clientId, payload: { weight: Number(newWeight), date: today } });
+        setWeightHistory((current) => [{ id: clientId, date: today, weight: Number(newWeight), addedAt: new Date().toISOString() }, ...current]);
+      } else {
+        await weightService.addLog(Number(newWeight), today);
+      }
       await loadWeightHistory();
       setNewWeight("");
       setShowWeightForm(false);
-    } catch (saveError) { alert(saveError.message || "Unable to save weight. Please log in and try again."); }
+    } catch { alert("Unable to save weight. Please try again."); }
   };
 
-  const saveWeightGoals = (e) => {
+  const saveWeightGoals = async (e) => {
     e.preventDefault();
     const newGoals = {
       startingWeight: Number(goalForm.startingWeight) || null,
       goalWeight: Number(goalForm.goalWeight) || null,
     };
-    setWeightGoals(newGoals);
-    localStorage.setItem("weightGoals", JSON.stringify(newGoals));
-    setShowGoalForm(false);
+    try {
+      await goalsService.upsertGoal({ goal_type: "weight_loss", current_weight_kg: newGoals.startingWeight, target_weight_kg: newGoals.goalWeight });
+      setWeightGoals(newGoals);
+      setShowGoalForm(false);
+    } catch {
+      alert("Unable to save weight goals. Please try again.");
+    }
   };
 
   const deleteEntry = async (id) => {
     if (!window.confirm("Delete this weight entry?")) return;
-    try { await weightService.deleteLog(id); await loadWeightHistory(); } catch (deleteError) { alert(deleteError.message || "Unable to delete weight entry."); }
+    try {
+      if (cancelQueuedCreate(id)) {
+        setWeightHistory((current) => current.filter((entry) => entry.id !== id));
+        setOfflineMessage("Weight deletion queued and will sync when you are online.");
+      } else if (!navigator.onLine) {
+        enqueue({ type: "weightLogDelete", payload: { id } });
+        setWeightHistory((current) => current.filter((entry) => entry.id !== id));
+        setOfflineMessage("Weight deletion queued and will sync when you are online.");
+      } else if (navigator.onLine) {
+        await weightService.deleteLog(id);
+        await loadWeightHistory();
+      }
+    } catch { alert("Unable to delete weight entry. Please try again."); }
+  };
+
+  const editEntry = async (entry) => {
+    const value = window.prompt("Weight (kg)", entry.weight);
+    if (value === null || !value.trim() || Number.isNaN(Number(value))) return;
+    const weight = Number(value);
+    const updates = { weight_kg: weight };
+    try {
+      if (updateQueuedCreate(entry.id, { weight: weight })) {
+        setWeightHistory((current) => current.map((item) => item.id === entry.id ? { ...item, weight } : item));
+        setOfflineMessage("Weight edit queued and will sync when you are online.");
+      } else if (!navigator.onLine) {
+        enqueue({ type: "weightLogUpdate", payload: { id: entry.id, updates } });
+        setWeightHistory((current) => current.map((item) => item.id === entry.id ? { ...item, weight } : item));
+        setOfflineMessage("Weight edit queued and will sync when you are online.");
+      } else if (navigator.onLine) {
+        await weightService.updateLog(entry.id, updates);
+        await loadWeightHistory();
+      }
+    } catch { alert("Unable to edit weight entry. Please try again."); }
   };
 
   const clearAll = async () => {
     if (!window.confirm("Clear all weight history? This cannot be undone.")) return;
-    try { await weightService.deleteAll(); setWeightHistory([]); } catch (clearError) { alert(clearError.message || "Unable to clear weight history."); }
+    try {
+      if (!navigator.onLine) {
+        weightHistory.forEach((entry) => {
+          if (!cancelQueuedCreate(entry.id)) enqueue({ type: "weightLogDelete", payload: { id: entry.id } });
+        });
+        setOfflineMessage("Weight history clearing queued and will sync when you are online.");
+      } else {
+        await weightService.deleteAll();
+      }
+      setWeightHistory([]);
+    } catch { alert("Unable to clear weight history. Please try again."); }
   };
 
   const recentTrendData = weightHistory.slice(0, 10).reverse();
 
   return (
     <div className="weight-tracker-container">
+      {offlineMessage && <p className="offline-notice" role="status">{offlineMessage}</p>}
       <div className="weight-header">
         <h2>Weight Tracker</h2>
         <div className="weight-header-buttons">
@@ -379,6 +437,7 @@ export default function WeightTracker({ autoOpen = false }) {
                       )}
                     </span>
                     <span className="col-action">
+                      <button onClick={() => editEntry(entry)} className="btn-secondary" type="button">Edit</button>
                       <button
                         onClick={() => deleteEntry(entry.id)}
                         className="btn-remove"

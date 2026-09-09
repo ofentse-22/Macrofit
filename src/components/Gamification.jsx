@@ -10,12 +10,9 @@ export default function Gamification() {
     achievements: [],
   });
   const [loading, setLoading] = useState(true);
+  const [referenceTime] = useState(() => Date.now());
 
-  useEffect(() => {
-    loadGamificationData();
-  }, []);
-
-  const loadGamificationData = async () => {
+  async function loadGamificationData() {
     try {
       const workouts = await workoutService.getWorkouts();
       const workoutHistory = workouts.map((workout) => ({ ...workout, completedAt: workout.created_at }));
@@ -53,7 +50,8 @@ export default function Gamification() {
       bestStreak = Math.max(bestStreak, tempStreak);
 
       // Generate achievements
-      const generatedAchievements = generateAchievements(workoutHistory, uniqueDates.length);
+      // eslint-disable-next-line react-hooks/immutability
+      const generatedAchievements = generateAchievements(workoutHistory);
 
       setStats({
         currentStreak,
@@ -68,7 +66,11 @@ export default function Gamification() {
     }
   };
 
-  const generateAchievements = (workoutHistory, totalDays) => {
+  useEffect(() => {
+    queueMicrotask(() => loadGamificationData());
+  }, []);
+
+  function generateAchievements(workoutHistory) {
     const achievements = [];
 
     // Milestone achievements
@@ -259,7 +261,7 @@ export default function Gamification() {
             <span className="stat-value">
               {(() => {
                 const workoutHistory = JSON.parse(localStorage.getItem('workoutHistory') || '[]');
-                const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+                const oneWeekAgo = new Date(referenceTime - 7 * 24 * 60 * 60 * 1000);
                 return workoutHistory.filter(w => new Date(w.completedAt) > oneWeekAgo).length;
               })()}
             </span>

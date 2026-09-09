@@ -1,21 +1,16 @@
 import { useEffect, useState } from 'react';
 
 import Dashboard from './components/Dashboard';
-import WorkoutTracker from './components/WorkoutTracker';
-import WorkoutHistory from './components/WorkoutHistory';
-import WorkoutTemplates from './components/WorkoutTemplates';
-import ExerciseLibrary from './components/ExerciseLibrary';
-import BodyComposition from './components/BodyComposition';
+import TrainingWorkspace from './components/TrainingWorkspace';
 import NutritionTracker from './components/NutritionTracker';
 import WeightTracker from './components/WeightTracker';
-import ProgressiveOverload from './components/ProgressiveOverload';
-import PersonalRecords from './components/PersonalRecords';
-import WorkoutCalendar from './components/WorkoutCalendar';
-import WorkoutGenerator from './components/WorkoutGenerator';
-import Gamification from './components/Gamification';
-import Analytics from './components/Analytics';
+import BodyComposition from './components/BodyComposition';
+import ProgressWorkspace from './components/ProgressWorkspace';
 import AuthPanel from './components/AuthPanel';
 import DataExport from './components/DataExport';
+import SyncIndicator from './components/SyncIndicator';
+import { flushQueue } from './services/offlineQueue';
+import { nutritionService, weightService, workoutService } from './services/supabaseService';
 import './App.css';
 
 function App() {
@@ -27,18 +22,27 @@ function App() {
     localStorage.setItem('fitlab-theme', 'dark');
   }, []);
 
+  useEffect(() => {
+    const sync = () => flushQueue({
+      nutritionLog: (payload) => nutritionService.addLog(payload),
+      nutritionLogUpdate: (payload) => nutritionService.updateLog(payload.id, payload.updates),
+      nutritionLogDelete: (payload) => nutritionService.deleteLog(payload.id),
+      weightLog: (payload) => weightService.addLog(payload.weight, payload.date, payload.notes),
+      weightLogUpdate: (payload) => weightService.updateLog(payload.id, payload.updates),
+      weightLogDelete: (payload) => weightService.deleteLog(payload.id),
+      workoutSet: (payload) => workoutService.completeSet(payload.id, payload.completedAt),
+    });
+    sync();
+    window.addEventListener('online', sync);
+    return () => window.removeEventListener('online', sync);
+  }, []);
+
   const tabs = [
     ['dashboard', 'Home'],
     ['training', 'Training'],
     ['health', 'Nutrition'],
     ['progress', 'Progress'],
     ['account', 'Profile'],
-  ];
-
-  const secondaryTabs = [
-    ['plan', 'Plan'],
-    ['library', 'Exercise Library'],
-    ['export', 'Account & Export'],
   ];
 
   return (
@@ -65,24 +69,16 @@ function App() {
         ))}
       </nav>
 
-      <nav className="secondary-nav" aria-label="Secondary navigation">
-        {secondaryTabs.map(([id, label]) => (
-          <button key={id} className={activeTab === id ? 'active' : ''} onClick={() => setActiveTab(id)}>
-            {label}
-          </button>
-        ))}
-      </nav>
-
       <main className="app-main">
         {activeTab === 'dashboard' && <Dashboard onNavigate={setActiveTab} />}
-        {activeTab === 'training' && <div className="workspace-stack"><WorkoutTracker /><WorkoutHistory /><WorkoutCalendar /></div>}
-        {activeTab === 'progress' && <div className="workspace-stack"><Analytics /><ProgressiveOverload /><PersonalRecords /><Gamification /></div>}
-        {activeTab === 'plan' && <div className="workspace-stack"><WorkoutGenerator /><WorkoutTemplates /></div>}
-        {activeTab === 'library' && <ExerciseLibrary />}
+        {activeTab === 'training' && <TrainingWorkspace />}
+        {activeTab === 'progress' && <ProgressWorkspace onNavigate={setActiveTab} />}
         {activeTab === 'health' && <div className="workspace-stack"><NutritionTracker autoOpen={quickTarget === 'food'} /><WeightTracker autoOpen={quickTarget === 'weight'} /><BodyComposition /></div>}
         {activeTab === 'account' && <div className="workspace-stack"><AuthPanel /><DataExport /></div>}
         {activeTab === 'export' && <div className="workspace-stack"><AuthPanel /><DataExport /></div>}
       </main>
+
+      <SyncIndicator />
 
       {quickActionsOpen && <div className="quick-action-menu" role="menu"><button type="button" onClick={() => { setQuickTarget(null); setActiveTab('training'); setQuickActionsOpen(false); }}>Log Workout</button><button type="button" onClick={() => { setQuickTarget('food'); setActiveTab('health'); setQuickActionsOpen(false); }}>Log Food</button><button type="button" onClick={() => { setQuickTarget('weight'); setActiveTab('health'); setQuickActionsOpen(false); }}>Log Weight</button></div>}
       <button className="quick-action" type="button" onClick={() => setQuickActionsOpen((open) => !open)} aria-label="Open quick actions" aria-expanded={quickActionsOpen}>

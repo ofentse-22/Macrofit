@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS workouts (
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   category TEXT, -- 'Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Full Body'
-  exercise_library_id UUID REFERENCES exercise_library(id),
+  exercise_library_id UUID,
   sets INTEGER NOT NULL,
   reps INTEGER NOT NULL,
   weight_kg DECIMAL(6,2),
@@ -58,11 +58,16 @@ CREATE TABLE IF NOT EXISTS workouts (
   instructions TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  last_completed_at TIMESTAMP WITH TIME ZONE,
   completed_at TIMESTAMP WITH TIME ZONE
 );
 
 CREATE INDEX idx_workouts_user_id ON workouts(user_id);
 CREATE INDEX idx_workouts_created_at ON workouts(created_at);
+
+-- Safe migration for projects created before updated_at was added.
+ALTER TABLE workouts ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+ALTER TABLE workouts ADD COLUMN IF NOT EXISTS last_completed_at TIMESTAMP WITH TIME ZONE;
 
 -- ==================== WORKOUT TEMPLATES ====================
 CREATE TABLE IF NOT EXISTS workout_templates (
@@ -184,6 +189,17 @@ CREATE TABLE IF NOT EXISTS exercise_library (
   muscle_groups TEXT[], -- Array of primary/secondary muscles
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'workouts_exercise_library_id_fkey'
+  ) THEN
+    ALTER TABLE workouts
+      ADD CONSTRAINT workouts_exercise_library_id_fkey
+      FOREIGN KEY (exercise_library_id) REFERENCES exercise_library(id);
+  END IF;
+END $$;
 
 -- ==================== ACHIEVEMENTS ====================
 CREATE TABLE IF NOT EXISTS achievements (

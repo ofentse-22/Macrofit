@@ -1,16 +1,27 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "./DashBoard.css";
-
-function getSavedHistory() {
-  try {
-    return JSON.parse(localStorage.getItem("workoutHistory") || "[]");
-  } catch {
-    return [];
-  }
-}
+import { workoutService } from "../services/supabaseService";
 
 export default function WorkoutHistory() {
-  const [history] = useState(() => getSavedHistory());
+  const [history, setHistory] = useState([]);
+
+  useEffect(() => {
+    let active = true;
+    workoutService.getWorkouts().then((workouts) => {
+      if (!active) return;
+      setHistory(workouts.map((workout) => ({
+        ...workout,
+        title: workout.name,
+        completedAt: workout.completed_at || workout.created_at,
+        exerciseCount: 1,
+        totalSets: Number(workout.sets) || 0,
+        completedSets: Number(workout.completed_sets) || 0,
+        completedRatio: workout.sets ? Math.round((Number(workout.completed_sets || 0) / Number(workout.sets)) * 100) : 0,
+        exercises: [{ name: workout.name }],
+      })));
+    });
+    return () => { active = false; };
+  }, []);
 
   const sortedHistory = useMemo(() => {
     return [...history].sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
@@ -23,7 +34,7 @@ export default function WorkoutHistory() {
           <p className="eyebrow">Workout history</p>
           <h2>Past sessions</h2>
         </div>
-        <span className="status-pill">Saved locally</span>
+        <span className="status-pill">Synced</span>
       </div>
 
       {sortedHistory.length === 0 ? (

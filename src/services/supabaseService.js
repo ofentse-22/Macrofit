@@ -195,7 +195,6 @@ export const workoutService = {
       .from('workouts')
       .update({
         ...updates,
-        updated_at: new Date(),
       })
       .eq('id', id)
       .eq('user_id', user.id)
@@ -219,15 +218,22 @@ export const workoutService = {
     if (error) throw new Error(`Error deleting workout: ${error.message}`);
   },
 
+  async deleteAll() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+    const { error } = await supabase.from('workouts').delete().eq('user_id', user.id);
+    if (error) throw new Error(`Error clearing workouts: ${error.message}`);
+  },
+
   // Complete a set
-  async completeSet(id) {
+  async completeSet(id, completedAt = new Date().toISOString()) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
     // Get current workout
     const { data: workout, error: fetchError } = await supabase
       .from('workouts')
-      .select('completed_sets, sets')
+      .select('completed_sets, sets, last_completed_at')
       .eq('id', id)
       .eq('user_id', user.id)
       .single();
@@ -243,7 +249,7 @@ export const workoutService = {
       .from('workouts')
       .update({
         completed_sets: Math.min(completedSets + 1, totalSets),
-        updated_at: new Date().toISOString(),
+        last_completed_at: completedAt,
       })
       .eq('id', id)
       .eq('user_id', user.id)
@@ -262,7 +268,7 @@ export const workoutService = {
       .from('workouts')
       .update({
         completed_sets: 0,
-        updated_at: new Date(),
+        last_completed_at: null,
       })
       .eq('id', id)
       .eq('user_id', user.id)
@@ -375,6 +381,20 @@ export const nutritionService = {
     return authData.user?.user_metadata?.nutrition_logs?.[0] || entry;
   },
 
+  async updateLog(id, updates) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+    const { data, error } = await supabase
+      .from('nutrition_logs')
+      .update(updates)
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+    if (error) throw new Error(`Error updating nutrition log: ${error.message}`);
+    return data;
+  },
+
   // Delete nutrition log
   async deleteLog(id) {
     const { data: { user } } = await supabase.auth.getUser();
@@ -404,13 +424,14 @@ export const nutritionService = {
       .single();
 
     if (error) {
-      if (isMissingTableError(error)) return user.user_metadata?.nutrition_goals || { daily_calories: 2500, daily_protein_g: 150, daily_carbs_g: 300, daily_fat_g: 70 };
+      if (isMissingTableError(error)) return user.user_metadata?.nutrition_goals || { daily_calories: 2500, daily_protein_g: 150, daily_carbs_g: 300, daily_fat_g: 70, is_default: true };
       // Return defaults if not found
       return {
         daily_calories: 2500,
         daily_protein_g: 150,
         daily_carbs_g: 300,
         daily_fat_g: 70,
+        is_default: true,
       };
     }
     return data;
@@ -495,6 +516,20 @@ export const weightService = {
 
     if (error) throw new Error(`Error adding weight log: ${error.message}`);
     return data?.[0];
+  },
+
+  async updateLog(id, updates) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+    const { data, error } = await supabase
+      .from('weight_logs')
+      .update(updates)
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+    if (error) throw new Error(`Error updating weight log: ${error.message}`);
+    return data;
   },
 
   async deleteLog(id) {

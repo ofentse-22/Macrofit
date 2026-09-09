@@ -191,8 +191,8 @@ export default function BodyComposition() {
       // otherwise valid BMI/body-composition result from being saved.
       try { await weightService.addLog(Number(weight), measurementDate); } catch (weightError) { console.warn("Weight log was not saved:", weightError); }
       alert("Body composition saved to your account.");
-    } catch (saveError) {
-      alert(saveError.message || "Unable to save your results. Please log in and try again.");
+    } catch {
+      alert("Unable to save your results. Please try again.");
     }
   };
 

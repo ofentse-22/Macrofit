@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import "./NutritionTracker.css";
-import { nutritionService } from "../services/supabaseService";
+import { nutritionService, workoutService } from "../services/supabaseService";
+import { cancelQueuedCreate, enqueue, updateQueuedCreate } from "../services/offlineQueue";
+import { calculateCaloriesRemaining, calculateExerciseCalories } from "../services/nutritionCalculations";
 
 const COMMON_FOODS = [
   { id: 1, name: "Chicken Breast (100g)", calories: 165, protein: 31, carbs: 0, fat: 3.6 },
@@ -117,6 +119,7 @@ function NutritionCard({ title, value, unit, color }) {
 
 export default function NutritionTracker({ autoOpen = false }) {
   const [meals, setMeals] = useState([]);
+  const [exerciseCalories, setExerciseCalories] = useState(0);
 
   const [macroGoals, setMacroGoals] = useState({});
   const [showGoalForm, setShowGoalForm] = useState(false);
@@ -124,14 +127,17 @@ export default function NutritionTracker({ autoOpen = false }) {
   const [showAddMeal, setShowAddMeal] = useState(autoOpen);
   const [selectedMealType, setSelectedMealType] = useState("breakfast");
   const [showCustomFood, setShowCustomFood] = useState(false);
+  const [selectedFood, setSelectedFood] = useState(null);
   const [foodSearch, setFoodSearch] = useState("");
   const [macroView, setMacroView] = useState("grams");
   const [waterIntake, setWaterIntake] = useState(() => Number(localStorage.getItem("fitlab-water") || 0));
   const [customFood, setCustomFood] = useState({ name: "", grams: "100", calories: "", protein: "", carbs: "", fat: "" });
+  const [offlineMessage, setOfflineMessage] = useState("");
 
   useEffect(() => {
-    Promise.all([nutritionService.getLogsForDate(getTodayDate()), nutritionService.getGoals()]).then(([logs, savedGoals]) => {
+    Promise.all([nutritionService.getLogsForDate(getTodayDate()), nutritionService.getGoals(), workoutService.getWorkouts()]).then(([logs, savedGoals, workouts]) => {
       setMeals(logs.map((log) => ({ id: log.id, date: log.meal_date, mealType: log.meal_type, name: log.food_name, quantity: Number(log.quantity) || 0, calories: Number(log.calories) || 0, protein: Number(log.protein_g) || 0, carbs: Number(log.carbs_g) || 0, fat: Number(log.fat_g) || 0 })));
+      setExerciseCalories(calculateExerciseCalories(workouts, getTodayDate()));
       const goals = savedGoals || {};
       setMacroGoals({ calories: goals.daily_calories, protein: goals.daily_protein_g, carbs: goals.daily_carbs_g, fat: goals.daily_fat_g });
       setGoalForm({ calories: goals.daily_calories, protein: goals.daily_protein_g, carbs: goals.daily_carbs_g, fat: goals.daily_fat_g });
@@ -160,7 +166,7 @@ export default function NutritionTracker({ autoOpen = false }) {
   };
 
   const remaining = {
-    calories: Math.max(0, goals.calories - totals.calories),
+    calories: calculateCaloriesRemaining(goals.calories, totals.calories, exerciseCalories),
     protein: Math.max(0, goals.protein - totals.protein),
     carbs: Math.max(0, goals.carbs - totals.carbs),
     fat: Math.max(0, goals.fat - totals.fat),
@@ -191,17 +197,54 @@ export default function NutritionTracker({ autoOpen = false }) {
       await nutritionService.updateGoals({ daily_calories: newGoals.calories, daily_protein_g: newGoals.protein, daily_carbs_g: newGoals.carbs, daily_fat_g: newGoals.fat });
       setMacroGoals(newGoals);
       setShowGoalForm(false);
-    } catch (saveError) { alert(saveError.message || "Unable to save nutrition goals."); }
+    } catch { alert("Unable to save nutrition goals. Please try again."); }
   };
 
   const addFood = async (food) => {
     const today = getTodayDate();
+    const payload = { meal_date: today, meal_type: selectedMealType, food_name: food.name, quantity: food.grams || null, quantity_unit: food.grams ? "g" : null, calories: food.calories, protein_g: food.protein, carbs_g: food.carbs, fat_g: food.fat };
     try {
-      const saved = await nutritionService.addLog({ meal_date: today, meal_type: selectedMealType, food_name: food.name, quantity: food.grams || null, quantity_unit: food.grams ? "g" : null, calories: food.calories, protein_g: food.protein, carbs_g: food.carbs, fat_g: food.fat });
+      const clientId = !navigator.onLine ? crypto.randomUUID() : null;
+      const saved = navigator.onLine ? await nutritionService.addLog(payload) : { ...payload, id: clientId };
+      if (clientId) enqueue({ type: "nutritionLog", clientId, payload });
       setMeals((current) => [{ id: saved.id, date: saved.meal_date, mealType: saved.meal_type, name: saved.food_name, quantity: Number(saved.quantity) || Number(food.grams) || 0, calories: Number(saved.calories) || 0, protein: Number(saved.protein_g) || 0, carbs: Number(saved.carbs_g) || 0, fat: Number(saved.fat_g) || 0 }, ...current]);
       setShowAddMeal(false);
-    } catch (saveError) { alert(saveError.message || "Unable to save meal. Please log in and try again."); }
+    } catch { alert("Unable to save meal. Please try again."); }
   };
+
+  const selectFood = (food) => {
+    const defaultGrams = Number(food.grams) || 100;
+    setSelectedFood({ food, grams: String(defaultGrams) });
+  };
+
+  const addSelectedFood = () => {
+    if (!selectedFood) return;
+    const defaultGrams = Number(selectedFood.food.grams) || 100;
+    const grams = Math.max(1, Number(selectedFood.grams) || defaultGrams);
+    const multiplier = grams / defaultGrams;
+    addFood({
+      ...selectedFood.food,
+      grams,
+      calories: Math.round(Number(selectedFood.food.calories) * multiplier),
+      protein: Number((Number(selectedFood.food.protein || 0) * multiplier).toFixed(1)),
+      carbs: Number((Number(selectedFood.food.carbs || 0) * multiplier).toFixed(1)),
+      fat: Number((Number(selectedFood.food.fat || 0) * multiplier).toFixed(1)),
+    });
+    setSelectedFood(null);
+  };
+
+  const selectedFoodNutrition = selectedFood ? (() => {
+    const defaultGrams = Number(selectedFood.food.grams) || 100;
+    const grams = Math.max(1, Number(selectedFood.grams) || defaultGrams);
+    const multiplier = grams / defaultGrams;
+    return {
+      grams,
+      calories: Math.round(Number(selectedFood.food.calories) * multiplier),
+      protein: Number((Number(selectedFood.food.protein || 0) * multiplier).toFixed(1)),
+      carbs: Number((Number(selectedFood.food.carbs || 0) * multiplier).toFixed(1)),
+      fat: Number((Number(selectedFood.food.fat || 0) * multiplier).toFixed(1)),
+    };
+  })() : null;
 
   const addCustomFood = (e) => {
     e.preventDefault();
@@ -222,12 +265,51 @@ export default function NutritionTracker({ autoOpen = false }) {
   };
 
   const removeMeal = async (id) => {
-    try { await nutritionService.deleteLog(id); setMeals((current) => current.filter((meal) => meal.id !== id)); } catch (deleteError) { alert(deleteError.message || "Unable to remove meal."); }
+    try {
+      if (cancelQueuedCreate(id)) {
+        setOfflineMessage("Meal removal queued and will sync when you are online.");
+      } else if (!navigator.onLine) {
+        enqueue({ type: "nutritionLogDelete", payload: { id } });
+        setOfflineMessage("Meal removal queued and will sync when you are online.");
+      } else if (navigator.onLine) {
+        await nutritionService.deleteLog(id);
+      }
+      setMeals((current) => current.filter((meal) => meal.id !== id));
+    } catch { alert("Unable to remove meal. Please try again."); }
+  };
+
+  const editMeal = async (meal) => {
+    const name = window.prompt("Food name", meal.name);
+    if (name === null || !name.trim()) return;
+    const calories = Number(window.prompt("Calories", meal.calories));
+    if (!Number.isFinite(calories)) return;
+    const updates = { food_name: name.trim(), calories };
+    try {
+      if (updateQueuedCreate(meal.id, updates)) {
+        setOfflineMessage("Meal edit queued and will sync when you are online.");
+      } else if (!navigator.onLine) {
+        enqueue({ type: "nutritionLogUpdate", payload: { id: meal.id, updates } });
+        setOfflineMessage("Meal edit queued and will sync when you are online.");
+      } else if (navigator.onLine) {
+        await nutritionService.updateLog(meal.id, updates);
+      }
+      setMeals((current) => current.map((item) => item.id === meal.id ? { ...item, name: updates.food_name, calories } : item));
+    } catch { alert("Unable to edit meal. Please try again."); }
   };
 
   const clearToday = async () => {
     if (!window.confirm("Clear all meals for today?")) return;
-    try { await Promise.all(meals.map((meal) => nutritionService.deleteLog(meal.id))); setMeals([]); } catch (clearError) { alert(clearError.message || "Unable to clear today's meals."); }
+    try {
+      if (!navigator.onLine) {
+        meals.forEach((meal) => {
+          if (!cancelQueuedCreate(meal.id)) enqueue({ type: "nutritionLogDelete", payload: { id: meal.id } });
+        });
+        setOfflineMessage("Meal clearing queued and will sync when you are online.");
+      } else {
+        await Promise.all(meals.map((meal) => nutritionService.deleteLog(meal.id)));
+      }
+      setMeals([]);
+    } catch { alert("Unable to clear today's meals. Please try again."); }
   };
 
   const copyPreviousMeals = async () => {
@@ -235,13 +317,14 @@ export default function NutritionTracker({ autoOpen = false }) {
     try {
       await Promise.all(meals.map((meal) => nutritionService.addLog({ meal_date: getTodayDate(), meal_type: meal.mealType, food_name: meal.name, quantity: meal.quantity || null, quantity_unit: meal.quantity ? "g" : null, calories: meal.calories, protein_g: meal.protein, carbs_g: meal.carbs, fat_g: meal.fat })));
       setMeals((current) => [...current, ...meals.map((meal) => ({ ...meal, id: `${meal.id}-copy-${Date.now()}` }))]);
-    } catch (error) {
-      alert(error.message || "Unable to copy yesterday's meals.");
+    } catch {
+      alert("Unable to copy yesterday's meals. Please try again.");
     }
   };
 
   return (
     <div className="nutrition-container">
+      {offlineMessage && <p className="offline-notice" role="status">{offlineMessage}</p>}
       <div className="nutrition-header">
         <h2>Nutrition Tracker</h2>
         <div className="nutrition-header-buttons">
@@ -308,6 +391,20 @@ export default function NutritionTracker({ autoOpen = false }) {
         </form>
       )}
 
+      <section className="calorie-hero" aria-label="Today's calorie budget">
+        <div className="calorie-hero-main">
+          <p className="panel-kicker">Today's budget</p>
+          <span className="calorie-remaining-label">Calories Remaining</span>
+          <strong className="calorie-remaining-value">{remaining.calories.toFixed(0)} <small>kcal</small></strong>
+          {!meals.length && <p className="calorie-empty-state">Start your diary with a meal.</p>}
+        </div>
+        <div className="calorie-breakdown">
+          <div><span>Base Goal</span><strong>{goals.calories} kcal</strong></div>
+          <div className="food-calorie-line"><span>Food</span><strong>- {totals.calories.toFixed(0)} kcal</strong></div>
+          <div className="exercise-calorie-line"><span>Exercise</span><strong>+ {exerciseCalories} kcal</strong></div>
+        </div>
+      </section>
+
       <div className="nutrition-summary">
         <div className="summary-section">
           <h3>Today's Goal</h3>
@@ -342,14 +439,14 @@ export default function NutritionTracker({ autoOpen = false }) {
 
       <div className="macro-progress">
         <div className="macro-heading"><h3>Progress</h3><div className="macro-view-toggle" role="group" aria-label="Macro display"><button type="button" className={macroView === "grams" ? "active" : ""} onClick={() => setMacroView("grams")}>Grams</button><button type="button" className={macroView === "percent" ? "active" : ""} onClick={() => setMacroView("percent")}>Percent</button><button type="button" className={macroView === "remaining" ? "active" : ""} onClick={() => setMacroView("remaining")}>Remaining</button></div></div>
-        <MacroBar label="Calories" consumed={totals.calories} goal={goals.calories} color="#1d56c7" displayValue={macroView === "grams" ? `${totals.calories.toFixed(0)} / ${goals.calories} kcal` : formatMacro(totals.calories, goals.calories)} />
+        <MacroBar label="Calories" consumed={totals.calories} goal={goals.calories + exerciseCalories} color="#1d56c7" displayValue={macroView === "grams" ? `${totals.calories.toFixed(0)} / ${goals.calories + exerciseCalories} kcal` : formatMacro(totals.calories, goals.calories + exerciseCalories)} />
         <MacroBar label="Protein" consumed={totals.protein} goal={goals.protein} color="#1d56c7" displayValue={formatMacro(totals.protein, goals.protein)} />
         <MacroBar label="Carbs" consumed={totals.carbs} goal={goals.carbs} color="#1d56c7" displayValue={formatMacro(totals.carbs, goals.carbs)} />
         <MacroBar label="Fat" consumed={totals.fat} goal={goals.fat} color="#1d56c7" displayValue={formatMacro(totals.fat, goals.fat)} />
       </div>
 
       <div className="nutrition-support-row">
-        <article className="water-card"><div><p className="panel-kicker">Hydration</p><h3>{waterIntake} / 8 glasses</h3></div><div className="water-actions">{Array.from({ length: 8 }, (_, index) => <button type="button" key={index} className={index < waterIntake ? "filled" : ""} aria-label={`Set water to ${index + 1} glasses`} onClick={() => setWaterIntake(index + 1)} />)}</div><button type="button" className="btn-secondary" onClick={() => setWaterIntake((value) => Math.min(8, value + 1))}>Add glass</button></article>
+        <article className="water-card"><div className="water-card-heading"><div><p className="panel-kicker">Hydration</p><h3>Hydration: {waterIntake} / 8 glasses</h3></div><button type="button" className="btn-secondary" onClick={() => setWaterIntake((value) => Math.min(8, value + 1))}>Add glass</button></div></article>
         {totals.protein < goals.protein * 0.5 && <article className="nutrition-nudge"><p className="panel-kicker">Daily nudge</p><h3>Protein is behind target</h3><p>Add a protein-rich meal to stay aligned with your goal.</p></article>}
       </div>
 
@@ -375,7 +472,7 @@ export default function NutritionTracker({ autoOpen = false }) {
 
             <div className="food-buttons">
               <button
-                onClick={() => setShowCustomFood(!showCustomFood)}
+                onClick={() => { setShowCustomFood(!showCustomFood); setSelectedFood(null); }}
                 className="btn-secondary"
               >
                 {showCustomFood ? "Close" : "Add Custom Food"}
@@ -449,7 +546,19 @@ export default function NutritionTracker({ autoOpen = false }) {
               </form>
             )}
 
-            {!showCustomFood && (
+            {selectedFood && !showCustomFood && selectedFoodNutrition && (
+              <div className="food-confirm-sheet" role="dialog" aria-label={`Add ${selectedFood.food.name}`}>
+                <div className="food-confirm-header"><div><p className="panel-kicker">Ready to log</p><h4>{selectedFood.food.name}</h4></div><button type="button" className="btn-secondary" onClick={() => setSelectedFood(null)}>Cancel</button></div>
+                <div className="food-confirm-fields">
+                  <label>Amount (g)<input type="number" min="1" step="1" value={selectedFood.grams} onChange={(event) => setSelectedFood({ ...selectedFood, grams: event.target.value })} autoFocus /></label>
+                  <label>Meal type<select value={selectedMealType} onChange={(event) => setSelectedMealType(event.target.value)}><option value="breakfast">Breakfast</option><option value="lunch">Lunch</option><option value="dinner">Dinner</option><option value="snacks">Snacks</option></select></label>
+                </div>
+                <div className="food-confirm-macros"><span>{selectedFoodNutrition.calories} kcal</span><span>{selectedFoodNutrition.protein}g protein</span><span>{selectedFoodNutrition.carbs}g carbs</span><span>{selectedFoodNutrition.fat}g fat</span></div>
+                <button type="button" className="btn-primary" onClick={addSelectedFood}>Add to diary</button>
+              </div>
+            )}
+
+            {!showCustomFood && !selectedFood && (
               <div className="common-foods">
                 <h4>Food Catalogue ({ALL_FOODS.length} foods)</h4>
                 <input type="search" value={foodSearch} onChange={(e) => setFoodSearch(e.target.value)} placeholder="Search foods" aria-label="Search foods" />
@@ -457,7 +566,7 @@ export default function NutritionTracker({ autoOpen = false }) {
                   {ALL_FOODS.filter((food) => food.name.toLowerCase().includes(foodSearch.trim().toLowerCase())).slice(0, 60).map((food) => (
                     <button
                       key={food.id}
-                      onClick={() => addFood(food)}
+                      onClick={() => selectFood(food)}
                       className="food-button"
                     >
                       {food.name}
@@ -495,6 +604,7 @@ export default function NutritionTracker({ autoOpen = false }) {
                           <span>{meal.fat.toFixed(1)}g fat</span>
                         </div>
                       </div>
+                      <button onClick={() => editMeal(meal)} className="btn-secondary" type="button">Edit</button>
                       <button
                         onClick={() => removeMeal(meal.id)}
                         className="btn-remove"

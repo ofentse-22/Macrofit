@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { bodyCompositionService, goalsService, nutritionService, userService, weightService, workoutService } from "../services/supabaseService";
+import { calculateCaloriesRemaining, calculateExerciseCalories } from "../services/nutritionCalculations";
 
 function calculateStreak(workouts) {
   if (!Array.isArray(workouts) || workouts.length === 0) return 0;
 
   const uniqueDates = [...new Set(workouts
-    .filter((workout) => workout?.createdAt)
+    .filter((workout) => workout?.createdAt || workout?.created_at)
     .map((workout) => {
-      const date = new Date(workout.createdAt);
+      const date = new Date(workout.createdAt || workout.created_at);
       date.setHours(0, 0, 0, 0);
       return date.toISOString().split("T")[0];
     }))];
@@ -42,8 +43,11 @@ export default function Dashboard({ onNavigate }) {
   const [nutritionLog, setNutritionLog] = useState([]);
   const [weightHistory, setWeightHistory] = useState([]);
   const [nutritionGoals, setNutritionGoals] = useState({});
+  const [showFirstRun, setShowFirstRun] = useState(false);
+  const [firstRunForm, setFirstRunForm] = useState({ calories: "2500", weight: "" });
   const [profile, setProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [referenceTime] = useState(() => Date.now());
   const [goals, setGoals] = useState({ weight: "", strength: "" });
   const [goalForm, setGoalForm] = useState({ weight: "", strength: "" });
   const [reminders, setReminders] = useState(() => {
@@ -78,6 +82,7 @@ export default function Dashboard({ onNavigate }) {
       setWeightHistory(weightLogs);
       setNutritionLog(meals);
       setNutritionGoals(savedNutritionGoals || {});
+      setShowFirstRun(Boolean(savedNutritionGoals?.is_default && !savedWorkouts.length && !meals.length));
       setProfile(savedProfile);
       setGoals({ weight: savedGoal?.target_weight_kg ?? "", strength: savedGoal?.target_strength_kg ?? "" });
       setIsLoading(false);
@@ -86,12 +91,6 @@ export default function Dashboard({ onNavigate }) {
     });
     return () => { active = false; };
   }, []);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("fitGoals", JSON.stringify(goals));
-    }
-  }, [goals]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -150,21 +149,46 @@ export default function Dashboard({ onNavigate }) {
   );
   const nutritionGoal = Number(nutritionGoals.daily_calories) || 2500;
   const proteinGoal = Number(nutritionGoals.daily_protein_g) || 150;
-  const caloriesRemaining = Math.max(0, nutritionGoal - nutritionTotals.calories);
-  const calorieProgress = Math.min(100, Math.round((nutritionTotals.calories / nutritionGoal) * 100));
+  const exerciseCalories = calculateExerciseCalories(workouts, today);
+  const calorieBudget = nutritionGoal + exerciseCalories;
+  const caloriesRemaining = calculateCaloriesRemaining(nutritionGoal, nutritionTotals.calories, exerciseCalories);
+  const calorieProgress = Math.min(100, Math.round((nutritionTotals.calories / calorieBudget) * 100));
   const proteinProgress = Math.min(100, Math.round((nutritionTotals.protein / proteinGoal) * 100));
   const volume = workouts.reduce((sum, workout) => sum + (Number(workout.sets) || 0) * (Number(workout.reps) || 0), 0);
   const nutritionDays = new Set(nutritionLog.map((meal) => meal.meal_date || meal.date).filter(Boolean));
   const combinedStreak = currentStreak + (nutritionDays.size > 0 ? 1 : 0);
+  const weeklyWorkouts = workouts.filter((workout) => {
+    const date = new Date(workout.createdAt || workout.created_at);
+    return Number.isFinite(date.getTime()) && referenceTime - date.getTime() <= 7 * 24 * 60 * 60 * 1000;
+  });
+  const weeklyVolume = weeklyWorkouts.reduce((sum, workout) => sum + (Number(workout.sets) || 0) * (Number(workout.reps) || 0), 0);
+  const weeklyCalories = nutritionLog.reduce((sum, meal) => sum + (Number(meal.calories) || 0), 0);
   const recentFoods = nutritionLog.slice(0, 3);
   const recentWorkout = workouts[0];
+
+  const saveFirstRun = async (event) => {
+    event.preventDefault();
+    const calories = Math.max(500, Number(firstRunForm.calories) || 2500);
+    const weight = Number(firstRunForm.weight) || null;
+    try {
+      await Promise.all([
+        nutritionService.updateGoals({ daily_calories: calories, daily_protein_g: 150, daily_carbs_g: 300, daily_fat_g: 70 }),
+        goalsService.upsertGoal({ goal_type: "maintenance", target_weight_kg: weight }),
+      ]);
+      setNutritionGoals({ daily_calories: calories, daily_protein_g: 150, daily_carbs_g: 300, daily_fat_g: 70 });
+      setGoals((current) => ({ ...current, weight: weight || "" }));
+      setShowFirstRun(false);
+    } catch {
+      alert("We couldn't save your starting goals. Please try again.");
+    }
+  };
 
   const quickLogFood = async (food) => {
     try {
       await nutritionService.addLog({ meal_date: today, meal_type: food.mealType || "snacks", food_name: food.name, quantity: food.quantity || null, quantity_unit: food.quantity ? "g" : null, calories: food.calories, protein_g: food.protein_g || food.protein, carbs_g: food.carbs_g || food.carbs, fat_g: food.fat_g || food.fat });
       setNutritionLog((current) => [food, ...current]);
-    } catch (error) {
-      alert(error.message || "Unable to log this food.");
+    } catch {
+      alert("Unable to log this food. Please try again.");
     }
   };
 
@@ -192,7 +216,7 @@ export default function Dashboard({ onNavigate }) {
       await goalsService.upsertGoal({ goal_type: "maintenance", target_weight_kg: Number(nextGoals.weight) || null, target_strength_kg: Number(nextGoals.strength) || null });
       setGoals(nextGoals);
       setGoalForm({ weight: "", strength: "" });
-    } catch (saveError) { alert(saveError.message || "Unable to save goal."); }
+    } catch { alert("Unable to save your goal. Please try again."); }
   };
 
   const saveReminder = (event) => {
@@ -225,24 +249,43 @@ export default function Dashboard({ onNavigate }) {
         <div>
           <p className="eyebrow">{new Date().toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}</p>
           <h2>Good to see you{profile?.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}.</h2>
-          <p className="dashboard-subtitle">Your training and nutrition, in one clear view.</p>
+          <p className="dashboard-subtitle">{combinedStreak ? `${combinedStreak}-day streak. Keep the momentum going.` : "Start your first training and nutrition streak today."}</p>
         </div>
-        <span className="status-pill">On track</span>
+        <span className="status-pill">Today at a glance</span>
       </div>
 
+      {showFirstRun && (
+        <form className="first-run-panel" onSubmit={saveFirstRun}>
+          <div>
+            <p className="eyebrow">Welcome to FitLab</p>
+            <h3>Set your starting goals</h3>
+            <p>Choose a daily calorie target and add a weight goal if you have one.</p>
+          </div>
+          <div className="first-run-fields">
+            <label><span>Daily calorie goal</span><input type="number" min="500" max="5000" step="50" value={firstRunForm.calories} onChange={(event) => setFirstRunForm({ ...firstRunForm, calories: event.target.value })} /></label>
+            <label><span>Weight goal <small>optional</small></span><input type="number" min="30" max="300" step="0.1" placeholder="kg" value={firstRunForm.weight} onChange={(event) => setFirstRunForm({ ...firstRunForm, weight: event.target.value })} /></label>
+          </div>
+          <button type="submit">Save &amp; start</button>
+        </form>
+      )}
+
       <div className="daily-overview">
-        <article className="daily-panel training-panel">
+        <article className="daily-panel training-panel clickable-panel" onClick={() => onNavigate?.("training")} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") onNavigate?.("training"); }} role="button" tabIndex="0">
           <div className="daily-panel-heading"><span className="panel-kicker">Today’s Training</span><span className="panel-icon">TR</span></div>
-          <div className="training-summary-row"><div className="training-number">{completionRate}<small>%</small></div><div><strong>{completedSets} of {totalSets || 0} sets</strong><span>Completion for today’s plan</span></div></div>
+          <div className="training-summary-row"><div className="training-number">{completionRate}<small>%</small></div><div><strong>{totalSets ? `${completedSets} of ${totalSets} sets` : "No workout planned"}</strong><span>{totalSets ? "Completion for today’s plan" : "Choose a plan to get started"}</span></div></div>
           <div className="metric-progress"><span style={{ width: `${completionRate}%` }} /></div>
+          {!totalSets && <button type="button" className="empty-card-action" onClick={(event) => { event.stopPropagation(); onNavigate?.("training"); }}>Add your first exercise</button>}
           <div className="daily-meta"><span>{totalExercises} exercises</span><span>{volume} total reps</span><span>Rest timer ready</span></div>
         </article>
-        <article className="daily-panel nutrition-panel">
+        <article className="daily-panel nutrition-panel clickable-panel" onClick={() => onNavigate?.("health")} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") onNavigate?.("health"); }} role="button" tabIndex="0">
           <div className="daily-panel-heading"><span className="panel-kicker">Today’s Nutrition</span><span className="panel-icon">NF</span></div>
-          <div className="nutrition-summary-row"><ProgressRing value={calorieProgress} /><div><strong>{nutritionTotals.calories.toFixed(0)} <small>/ {nutritionGoal} kcal</small></strong><span>{caloriesRemaining.toFixed(0)} kcal remaining</span></div></div>
+          <div className="nutrition-summary-row"><ProgressRing value={calorieProgress} /><div><strong>{caloriesRemaining.toFixed(0)} <small>kcal remaining</small></strong><span>{nutritionLog.length ? `${nutritionTotals.calories.toFixed(0)} food + ${exerciseCalories} exercise / ${calorieBudget} kcal budget` : "No food logged yet"}</span></div></div>
+          {!nutritionLog.length && <button type="button" className="empty-card-action" onClick={(event) => { event.stopPropagation(); onNavigate?.("health"); }}>Log a meal</button>}
           <div className="protein-track"><div><span>Protein</span><strong>{nutritionTotals.protein.toFixed(0)} / {proteinGoal} g</strong></div><div className="metric-progress"><span style={{ width: `${proteinProgress}%` }} /></div></div>
         </article>
       </div>
+
+      <div className="dashboard-ctas"><button type="button" onClick={() => onNavigate?.("training")}>Continue Workout <span aria-hidden="true">→</span></button><button type="button" onClick={() => onNavigate?.("health")}>Log Food <span aria-hidden="true">→</span></button></div>
 
       <article className="streak-card"><div className="streak-mark">{combinedStreak}</div><div><p className="panel-kicker">Consistency streak</p><h3>{combinedStreak} active day{combinedStreak === 1 ? "" : "s"}</h3><span>Training and nutrition are moving together.</span></div><div className="streak-breakdown"><span>Training <strong>{currentStreak}</strong></span><span>Nutrition <strong>{nutritionDays.size > 0 ? 1 : 0}</strong></span></div></article>
 
@@ -254,8 +297,8 @@ export default function Dashboard({ onNavigate }) {
       </div>
 
       <div className="weekly-recap">
-        <div><p className="eyebrow">Weekly recap</p><h3>A little consistency goes a long way.</h3><p>Track your volume, nutrition and personal records from the dedicated views.</p></div>
-        <div className="recap-metric"><strong>{volume}</strong><span>reps planned</span></div><div className="recap-metric"><strong>{nutritionTotals.protein.toFixed(0)}g</strong><span>protein today</span></div><div className="recap-metric"><strong>{bodyCompositionHistory.length}</strong><span>check-ins</span></div>
+        <div><p className="eyebrow">This week</p><h3>A little consistency goes a long way.</h3><p>Training and nutrition context, at a glance.</p></div>
+        <div className="recap-metric"><strong>{weeklyWorkouts.length}</strong><span>workouts</span></div><div className="recap-metric"><strong>{weeklyVolume}</strong><span>volume reps</span></div><div className="recap-metric"><strong>{weeklyCalories}</strong><span>calories logged</span></div>
       </div>
 
       <article className="quick-log-card">

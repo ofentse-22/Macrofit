@@ -1,3 +1,39 @@
+.offline-notice {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border: 1px solid #d89b35;
+  border-radius: 6px;
+  color: #f6d48b;
+  background: rgba(216, 155, 53, 0.12);
+}
+
+.calorie-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+  gap: 24px;
+  align-items: center;
+  padding: 28px;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--card-bg-strong), var(--card-bg));
+}
+
+.calorie-hero-main { min-width: 0; }
+.calorie-hero-main .panel-kicker { margin: 0 0 8px; }
+.calorie-remaining-label { display: block; color: var(--text-secondary); font-size: 0.9rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+.calorie-remaining-value { display: block; margin-top: 4px; color: var(--text-primary); font-size: clamp(2.8rem, 7vw, 5rem); line-height: 1; }
+.calorie-remaining-value small { color: var(--text-secondary); font-size: 1rem; font-weight: 700; }
+.calorie-empty-state { margin: 12px 0 0; color: var(--text-secondary); }
+.calorie-breakdown { display: grid; gap: 12px; padding-left: 20px; border-left: 1px solid var(--border-color); }
+.calorie-breakdown div { display: flex; justify-content: space-between; gap: 16px; color: var(--text-secondary); }
+.calorie-breakdown strong { color: var(--text-primary); }
+.food-calorie-line strong { color: #fb923c; }
+.exercise-calorie-line strong { color: #4ade80; }
+
+@media (max-width: 640px) {
+  .calorie-hero { grid-template-columns: 1fr; padding: 22px; }
+  .calorie-breakdown { padding: 16px 0 0; border-top: 1px solid var(--border-color); border-left: 0; }
+}
 /* ==================== NUTRITION TRACKER ==================== */
 
 .nutrition-container {
@@ -26,11 +62,10 @@
 .macro-view-toggle button { padding: 5px 8px; border: 0; border-radius: 6px; background: transparent; color: var(--text-secondary); box-shadow: none !important; font-size: 0.72rem; }
 .macro-view-toggle button.active { background: var(--button-color); color: #fff; }
 .nutrition-support-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.water-card, .nutrition-nudge { display: flex; align-items: center; gap: 14px; padding: 16px; border: 1px solid var(--border-color); border-radius: 12px; background: var(--card-bg); }
+.water-card, .nutrition-nudge { display: flex; align-items: center; gap: 14px; padding: 16px; border: 1px solid var(--border-color); border-radius: var(--radius-card, 12px); background: var(--card-bg); box-shadow: var(--elevation-subtle); }
 .water-card h3, .nutrition-nudge h3 { margin: 4px 0; color: var(--text-primary); }
-.water-actions { display: flex; gap: 5px; flex: 1; }
-.water-actions button { width: 13px; height: 24px; padding: 0; border: 1px solid var(--accent-border); border-radius: 5px; background: var(--input-bg); box-shadow: none !important; }
-.water-actions button.filled { background: var(--button-color); }
+.water-card { display: grid; align-items: stretch; }
+.water-card-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .nutrition-nudge { display: block; }
 .nutrition-nudge p:last-child { margin-top: 5px; color: var(--text-secondary); font-size: 0.82rem; }
   margin: 0;
@@ -40,7 +75,8 @@
 
 .nutrition-header-buttons {
   display: flex;
-  gap: 8px;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .nutrition-goals-form,
@@ -51,6 +87,15 @@
   padding: 20px;
   margin-bottom: 16px;
 }
+
+.food-confirm-sheet { display: grid; gap: 16px; padding: 18px; border: 1px solid var(--accent-border); border-radius: var(--radius-card, 12px); background: var(--card-bg-strong); }
+.food-confirm-header, .food-confirm-fields, .food-confirm-macros { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.food-confirm-header h4 { margin-top: 5px; color: var(--text-primary); }
+.food-confirm-fields label { display: grid; gap: 6px; color: var(--text-secondary); font-size: 0.78rem; font-weight: 700; }
+.food-confirm-fields input, .food-confirm-fields select { min-width: 150px; }
+.food-confirm-macros { justify-content: flex-start; color: var(--text-secondary); font-size: 0.82rem; }
+.food-confirm-macros span { padding: 7px 9px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--input-bg); }
+.food-confirm-sheet > .btn-primary { justify-self: start; }
 
 .nutrition-goals-form h3 {
   color: var(--text-primary);
@@ -66,8 +111,9 @@
 .summary-section {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-card, 12px);
   padding: 20px;
+  box-shadow: var(--elevation-subtle);
 }
 
 .summary-section h3 {
@@ -97,12 +143,12 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .nutrition-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border-color: var(--accent-border);
+  box-shadow: var(--elevation-subtle);
 }
 
 .nutrition-card-header {
@@ -141,8 +187,9 @@
 .macro-progress {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-card, 12px);
   padding: 20px;
+  box-shadow: var(--elevation-subtle);
 }
 
 .macro-progress h3 {
@@ -243,7 +290,7 @@
 
 .food-buttons {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   margin-bottom: 16px;
 }
 
@@ -264,22 +311,21 @@
 }
 
 .food-button {
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: var(--card-bg-strong) !important;
+  border: 1px solid var(--border-color) !important;
   border-radius: 6px;
   padding: 10px;
   color: var(--text-primary);
   cursor: pointer;
   font-size: 0.8rem;
   font-weight: 600;
-  transition: all 0.2s ease;
+  transition: border-color 0.15s ease, background 0.15s ease;
   text-align: center;
 }
 
 .food-button:hover {
-  background: rgba(59, 130, 246, 0.2);
-  border-color: rgba(59, 130, 246, 0.5);
-  transform: translateY(-2px);
+  background: var(--accent-soft) !important;
+  border-color: var(--accent-border) !important;
 }
 
 .food-button small {
@@ -372,7 +418,7 @@
 .btn-danger {
   padding: 10px 16px;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-control, 9px);
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
@@ -380,31 +426,30 @@
 }
 
 .btn-primary {
-  background: #3b82f6;
-  color: white;
+  background: var(--button-color) !important;
+  color: white !important;
 }
 
 .btn-primary:hover {
-  background: #2563eb;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  background: var(--button-color) !important;
+  border-color: #2b9bd2;
 }
 
 .btn-secondary {
-  background: rgba(59, 130, 246, 0.1);
-  color: #60a5fa;
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: var(--button-muted-bg) !important;
+  color: var(--button-muted-text) !important;
+  border: 1px solid var(--button-muted-border) !important;
 }
 
 .btn-secondary:hover {
-  background: rgba(59, 130, 246, 0.2);
-  border-color: rgba(59, 130, 246, 0.5);
+  background: var(--button-muted-bg) !important;
+  border-color: var(--accent-border) !important;
 }
 
 .btn-danger {
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: #842f3d !important;
+  color: #fff !important;
+  border: 1px solid #a33a4b !important;
 }
 
 .btn-danger:hover {
