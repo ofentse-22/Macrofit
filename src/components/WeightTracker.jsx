@@ -2,11 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import "./WeightTracker.css";
 import { goalsService, weightService } from "../services/supabaseService";
 import { cancelQueuedCreate, enqueue, updateQueuedCreate } from "../services/offlineQueue";
-
-function getTodayDate() {
-  const today = new Date();
-  return today.toISOString().split("T")[0];
-}
+import { getLocalDate } from "../services/dateUtils";
 
 function WeightCard({ label, value, unit, color }) {
   return (
@@ -79,7 +75,7 @@ export default function WeightTracker({ autoOpen = false }) {
   }, []);
 
   const loadWeightHistory = useCallback(async () => {
-    const logs = await weightService.getLogsForRange("2000-01-01", getTodayDate());
+    const logs = await weightService.getLogsForRange("2000-01-01", getLocalDate());
     return logs.slice().reverse().map((log) => ({
       id: log.id,
       date: log.weight_date,
@@ -103,13 +99,13 @@ export default function WeightTracker({ autoOpen = false }) {
     };
   }, [loadWeightHistory]);
 
-  const today = getTodayDate();
+  const today = getLocalDate();
   const todayEntry = weightHistory.find((entry) => entry.date === today);
 
   // Calculate weekly average
   const weekAgo = new Date();
   weekAgo.setDate(weekAgo.getDate() - 7);
-  const weekAgoDate = weekAgo.toISOString().split("T")[0];
+  const weekAgoDate = getLocalDate(weekAgo);
 
   const weekHistory = weightHistory.filter((entry) => entry.date >= weekAgoDate);
   const weeklyAverage = weekHistory.length > 0

@@ -350,7 +350,7 @@ export default function Analytics({ onNavigate }) {
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `fitlab-analytics-${new Date().toISOString().split('T')[0]}.json`;
+          a.download = `macrofit-analytics-${new Date().toISOString().split('T')[0]}.json`;
           a.click();
         }}>
           Download Analytics (JSON)

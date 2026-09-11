@@ -3,6 +3,7 @@ import "./NutritionTracker.css";
 import { nutritionService, workoutService } from "../services/supabaseService";
 import { cancelQueuedCreate, enqueue, updateQueuedCreate } from "../services/offlineQueue";
 import { calculateCaloriesRemaining, calculateExerciseCalories } from "../services/nutritionCalculations";
+import { getLocalDate } from "../services/dateUtils";
 
 const COMMON_FOODS = [
   { id: 1, name: "Chicken Breast (100g)", calories: 165, protein: 31, carbs: 0, fat: 3.6 },
@@ -82,11 +83,6 @@ const CATALOGUE_FOODS = EXPANDED_FOOD_NAMES.flatMap((name, index) => {
 
 const ALL_FOODS = [...COMMON_FOODS, ...CATALOGUE_FOODS];
 
-function getTodayDate() {
-  const today = new Date();
-  return today.toISOString().split("T")[0];
-}
-
 function MacroBar({ label, consumed, goal, color, displayValue }) {
   const percentage = goal > 0 ? Math.min((consumed / goal) * 100, 100) : 0;
 
@@ -135,9 +131,9 @@ export default function NutritionTracker({ autoOpen = false }) {
   const [offlineMessage, setOfflineMessage] = useState("");
 
   useEffect(() => {
-    Promise.all([nutritionService.getLogsForDate(getTodayDate()), nutritionService.getGoals(), workoutService.getWorkouts()]).then(([logs, savedGoals, workouts]) => {
+    Promise.all([nutritionService.getLogsForDate(getLocalDate()), nutritionService.getGoals(), workoutService.getWorkouts()]).then(([logs, savedGoals, workouts]) => {
       setMeals(logs.map((log) => ({ id: log.id, date: log.meal_date, mealType: log.meal_type, name: log.food_name, quantity: Number(log.quantity) || 0, calories: Number(log.calories) || 0, protein: Number(log.protein_g) || 0, carbs: Number(log.carbs_g) || 0, fat: Number(log.fat_g) || 0 })));
-      setExerciseCalories(calculateExerciseCalories(workouts, getTodayDate()));
+      setExerciseCalories(calculateExerciseCalories(workouts, getLocalDate()));
       const goals = savedGoals || {};
       setMacroGoals({ calories: goals.daily_calories, protein: goals.daily_protein_g, carbs: goals.daily_carbs_g, fat: goals.daily_fat_g });
       setGoalForm({ calories: goals.daily_calories, protein: goals.daily_protein_g, carbs: goals.daily_carbs_g, fat: goals.daily_fat_g });
@@ -201,7 +197,7 @@ export default function NutritionTracker({ autoOpen = false }) {
   };
 
   const addFood = async (food) => {
-    const today = getTodayDate();
+    const today = getLocalDate();
     const payload = { meal_date: today, meal_type: selectedMealType, food_name: food.name, quantity: food.grams || null, quantity_unit: food.grams ? "g" : null, calories: food.calories, protein_g: food.protein, carbs_g: food.carbs, fat_g: food.fat };
     try {
       const clientId = !navigator.onLine ? crypto.randomUUID() : null;
@@ -315,7 +311,7 @@ export default function NutritionTracker({ autoOpen = false }) {
   const copyPreviousMeals = async () => {
     if (!meals.length) return;
     try {
-      await Promise.all(meals.map((meal) => nutritionService.addLog({ meal_date: getTodayDate(), meal_type: meal.mealType, food_name: meal.name, quantity: meal.quantity || null, quantity_unit: meal.quantity ? "g" : null, calories: meal.calories, protein_g: meal.protein, carbs_g: meal.carbs, fat_g: meal.fat })));
+      await Promise.all(meals.map((meal) => nutritionService.addLog({ meal_date: getLocalDate(), meal_type: meal.mealType, food_name: meal.name, quantity: meal.quantity || null, quantity_unit: meal.quantity ? "g" : null, calories: meal.calories, protein_g: meal.protein, carbs_g: meal.carbs, fat_g: meal.fat })));
       setMeals((current) => [...current, ...meals.map((meal) => ({ ...meal, id: `${meal.id}-copy-${Date.now()}` }))]);
     } catch {
       alert("Unable to copy yesterday's meals. Please try again.");

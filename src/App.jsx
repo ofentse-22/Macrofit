@@ -31,6 +31,8 @@ function App() {
       weightLogUpdate: (payload) => weightService.updateLog(payload.id, payload.updates),
       weightLogDelete: (payload) => weightService.deleteLog(payload.id),
       workoutSet: (payload) => workoutService.completeSet(payload.id, payload.completedAt),
+      workoutUpdate: (payload) => workoutService.updateWorkout(payload.id, payload.updates),
+      workoutDelete: (payload) => workoutService.deleteWorkout(payload.id),
     });
     sync();
     window.addEventListener('online', sync);
@@ -50,8 +52,8 @@ function App() {
       <header className="app-header">
         <div className="app-header-top">
           <div>
-            <h1>FitLab</h1>
-            <p>Your personal fitness companion</p>
+            <h1>MacroFit</h1>
+            <p>Training and nutrition, in one place.</p>
           </div>
         </div>
       </header>
@@ -87,7 +89,7 @@ function App() {
       </button>
 
       <footer className="app-footer">
-        <p>2026 FitTrack. Build strength, track progress, stay consistent.</p>
+        <p>MacroFit · Training and nutrition tracking</p>
       </footer>
     </div>
   );

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import "./BMICalculator.css";
 import { bodyCompositionService, userService, weightService } from "../services/supabaseService";
+import { getLocalDate } from "../services/dateUtils";
 
 export default function BodyComposition() {
   const [gender, setGender] = useState("male");
@@ -177,7 +178,7 @@ export default function BodyComposition() {
   const saveResults = async () => {
     if (!results) return;
     try {
-      const measurementDate = new Date().toISOString().slice(0, 10);
+      const measurementDate = getLocalDate();
       const heightCm = unit === "in" ? Number(height) * 2.54 : Number(height);
       await userService.upsertProfile({ age: Number(age), gender, height_cm: heightCm, weight_kg: Number(weight) });
       await bodyCompositionService.addLog({

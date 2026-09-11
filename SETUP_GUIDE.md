@@ -1,4 +1,4 @@
-# FitTrack Setup Guide: From Prototype to Production
+# MacroFit Setup Guide: From Prototype to Production
 
 ## Quick Start (30 minutes)
 
@@ -315,8 +315,8 @@ const handleComplete = async () => {
 1. **public/manifest.json**
 ```json
 {
-  "name": "FitTrack - Fitness Companion",
-  "short_name": "FitTrack",
+  "name": "MacroFit - Fitness Companion",
+  "short_name": "MacroFit",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

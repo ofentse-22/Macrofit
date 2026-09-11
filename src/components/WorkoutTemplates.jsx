@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { supabase } from "../supabaseClient";
 import exerciseLibrary from "../data/exercises";
 import { workoutService } from "../services/supabaseService";
 
@@ -33,16 +32,9 @@ export default function WorkoutTemplates() {
   const [selectedExercise, setSelectedExercise] = useState("");
 
   const loadTemplate = async (template) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      alert("Please log in first to load templates");
-      return;
-    }
-
     const newExercises = template.exercises.map(name => {
       const ex = exerciseLibrary.find(e => e.name === name);
       return {
-        user_id: user.id,
         name: name,
         category: ex ? ex.category : "",
         sets: 4,
@@ -53,15 +45,12 @@ export default function WorkoutTemplates() {
       };
     });
 
-    const { error } = await supabase
-      .from('workouts')
-      .insert(newExercises);
-
-    if (error) {
-      alert("Unable to load templates. Please try again.");
-    } else {
+    try {
+      await workoutService.addWorkouts(newExercises);
       alert(`Template "${template.name}" loaded successfully!`);
       window.location.reload(); // Refresh WorkoutTracker
+    } catch {
+      alert("Unable to load templates. Please try again.");
     }
   };
 

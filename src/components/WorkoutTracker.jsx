@@ -102,15 +102,21 @@ export default function WorkoutTracker() {
     const nextReps = Number(reps);
     const nextRestTime = Number(restTime) || 60;
 
-    try {
-      await workoutService.updateWorkout(editingId, {
+    const updates = {
         name: exerciseName,
         sets: nextSets,
         reps: nextReps,
         weight_kg: weight ? parseFloat(weight) : null,
         rest_time_seconds: nextRestTime,
-      });
-      alert("Exercise updated!");
+    };
+
+    try {
+      if (!navigator.onLine) {
+        enqueue({ type: "workoutUpdate", payload: { id: editingId, updates } });
+      } else {
+        await workoutService.updateWorkout(editingId, updates);
+      }
+      alert(navigator.onLine ? "Exercise updated!" : "Exercise edit queued and will sync when you are online.");
       setExercises(current => current.map(ex => 
         ex.id === editingId 
           ? { ...ex, name: exerciseName, sets: nextSets, reps: nextReps, weight_kg: weight ? parseFloat(weight) : null, rest_time_seconds: nextRestTime }
@@ -125,7 +131,11 @@ export default function WorkoutTracker() {
     if (!window.confirm("Delete this exercise?")) return;
 
     try {
-      await workoutService.deleteWorkout(id);
+      if (!navigator.onLine) {
+        enqueue({ type: "workoutDelete", payload: { id } });
+      } else {
+        await workoutService.deleteWorkout(id);
+      }
       setExercises(current => current.filter(ex => ex.id !== id));
     } catch { alert("Unable to delete exercise. Please try again."); }
   };

@@ -170,20 +170,25 @@ export const workoutService = {
 
   // Add new workout
   async addWorkout(workoutData) {
+    const workouts = await this.addWorkouts([workoutData]);
+    return workouts[0];
+  },
+
+  async addWorkouts(workoutsData) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
     const { data, error } = await supabase
       .from('workouts')
-      .insert([{
+      .insert(workoutsData.map((workoutData) => ({
         user_id: user.id,
         ...workoutData,
         created_at: new Date(),
-      }])
+      })))
       .select();
 
     if (error) throw new Error(`Error adding workout: ${error.message}`);
-    return data?.[0];
+    return data || [];
   },
 
   // Update workout

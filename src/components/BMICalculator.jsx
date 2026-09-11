@@ -94,7 +94,7 @@ export default function Dashboard() {
   const currentStreak = calculateStreak(workouts);
 
   const shareProgress = () => {
-    const text = `FitTrack Progress: ${currentStreak} day streak | BMI: ${latestBmi} | ${totalExercises} exercises tracked`;
+    const text = `MacroFit Progress: ${currentStreak} day streak | BMI: ${latestBmi} | ${totalExercises} exercises tracked`;
     navigator.clipboard.writeText(text);
     alert("Progress copied to clipboard");
   };
@@ -110,7 +110,7 @@ export default function Dashboard() {
       </div>
 
       <div className="stats-grid">
-        <StatCard label="Current Streak" value={currentStreak + " days"} detail="Keep the momentum" />
+        <StatCard label="Current Streak" value={currentStreak + " days"} detail="Training days in a row" />
         <StatCard label="Current BMI" value={latestBmi} detail="Latest recorded" />
         <StatCard label="Exercises" value={totalExercises} detail="In current workout" />
         <StatCard label="Completion Rate" value={completionRate + "%"} detail="Sets finished" />

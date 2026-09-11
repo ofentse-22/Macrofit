@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { bodyCompositionService, goalsService, nutritionService, userService, weightService, workoutService } from "../services/supabaseService";
 import { calculateCaloriesRemaining, calculateExerciseCalories } from "../services/nutritionCalculations";
+import { getLocalDate } from "../services/dateUtils";
 
 function calculateStreak(workouts) {
   if (!Array.isArray(workouts) || workouts.length === 0) return 0;
@@ -8,9 +9,7 @@ function calculateStreak(workouts) {
   const uniqueDates = [...new Set(workouts
     .filter((workout) => workout?.createdAt || workout?.created_at)
     .map((workout) => {
-      const date = new Date(workout.createdAt || workout.created_at);
-      date.setHours(0, 0, 0, 0);
-      return date.toISOString().split("T")[0];
+      return getLocalDate(workout.createdAt || workout.created_at);
     }))];
 
   if (uniqueDates.length === 0) return 0;
@@ -64,13 +63,13 @@ export default function Dashboard({ onNavigate }) {
 
   useEffect(() => {
     let active = true;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = getLocalDate();
     const startDate = new Date();
     startDate.setFullYear(startDate.getFullYear() - 1);
     Promise.all([
       workoutService.getWorkouts(),
-      bodyCompositionService.getLogsForRange(startDate.toISOString().slice(0, 10), today),
-      weightService.getLogsForRange(startDate.toISOString().slice(0, 10), today),
+      bodyCompositionService.getLogsForRange(getLocalDate(startDate), today),
+      weightService.getLogsForRange(getLocalDate(startDate), today),
       nutritionService.getLogsForDate(today),
       nutritionService.getGoals(),
       goalsService.getGoal(),
@@ -138,7 +137,7 @@ export default function Dashboard({ onNavigate }) {
   const currentStreak = calculateStreak(workouts);
   const recentBodyHistory = bodyCompositionHistory.slice(-3).reverse();
   // Nutrition data for today
-  const today = new Date().toISOString().split("T")[0];
+  const today = getLocalDate();
   const todayNutrition = nutritionLog;
   const nutritionTotals = todayNutrition.reduce(
     (acc, meal) => ({
@@ -185,8 +184,9 @@ export default function Dashboard({ onNavigate }) {
 
   const quickLogFood = async (food) => {
     try {
-      await nutritionService.addLog({ meal_date: today, meal_type: food.mealType || "snacks", food_name: food.name, quantity: food.quantity || null, quantity_unit: food.quantity ? "g" : null, calories: food.calories, protein_g: food.protein_g || food.protein, carbs_g: food.carbs_g || food.carbs, fat_g: food.fat_g || food.fat });
-      setNutritionLog((current) => [food, ...current]);
+      const quantity = food.quantity ?? food.grams ?? null;
+      const saved = await nutritionService.addLog({ meal_date: today, meal_type: food.meal_type || food.mealType || "snacks", food_name: food.food_name || food.name, quantity, quantity_unit: quantity ? "g" : null, calories: food.calories, protein_g: food.protein_g ?? food.protein, carbs_g: food.carbs_g ?? food.carbs, fat_g: food.fat_g ?? food.fat });
+      setNutritionLog((current) => [saved, ...current]);
     } catch {
       alert("Unable to log this food. Please try again.");
     }
@@ -196,7 +196,7 @@ export default function Dashboard({ onNavigate }) {
   const todayWeight = weightHistory.find((entry) => entry.weight_date === today);
 
   const shareProgress = async () => {
-    const text = `FitTrack Progress: ${currentStreak} day streak | BMI: ${latestBmi} | ${totalExercises} exercises tracked`;
+    const text = `MacroFit Progress: ${currentStreak} day streak | BMI: ${latestBmi} | ${totalExercises} exercises tracked`;
 
     try {
       await navigator.clipboard.writeText(text);
@@ -248,16 +248,15 @@ export default function Dashboard({ onNavigate }) {
       <div className="dashboard-intro">
         <div>
           <p className="eyebrow">{new Date().toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}</p>
-          <h2>Good to see you{profile?.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}.</h2>
-          <p className="dashboard-subtitle">{combinedStreak ? `${combinedStreak}-day streak. Keep the momentum going.` : "Start your first training and nutrition streak today."}</p>
+          <h2>{profile?.full_name ? `${profile.full_name.split(" ")[0]}'s day` : "Today"}</h2>
+          <p className="dashboard-subtitle">{combinedStreak ? `${combinedStreak} active day${combinedStreak === 1 ? "" : "s"} logged.` : "No training or meals logged today."}</p>
         </div>
-        <span className="status-pill">Today at a glance</span>
       </div>
 
       {showFirstRun && (
         <form className="first-run-panel" onSubmit={saveFirstRun}>
           <div>
-            <p className="eyebrow">Welcome to FitLab</p>
+            <p className="eyebrow">MacroFit setup</p>
             <h3>Set your starting goals</h3>
             <p>Choose a daily calorie target and add a weight goal if you have one.</p>
           </div>
@@ -272,14 +271,14 @@ export default function Dashboard({ onNavigate }) {
       <div className="daily-overview">
         <article className="daily-panel training-panel clickable-panel" onClick={() => onNavigate?.("training")} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") onNavigate?.("training"); }} role="button" tabIndex="0">
           <div className="daily-panel-heading"><span className="panel-kicker">Today’s Training</span><span className="panel-icon">TR</span></div>
-          <div className="training-summary-row"><div className="training-number">{completionRate}<small>%</small></div><div><strong>{totalSets ? `${completedSets} of ${totalSets} sets` : "No workout planned"}</strong><span>{totalSets ? "Completion for today’s plan" : "Choose a plan to get started"}</span></div></div>
+          <div className="training-summary-row"><div className="training-number">{completionRate}<small>%</small></div><div><strong>{totalSets ? `${completedSets} of ${totalSets} sets` : "No exercises yet"}</strong><span>{totalSets ? "Active workout progress" : "Add an exercise when you are ready"}</span></div></div>
           <div className="metric-progress"><span style={{ width: `${completionRate}%` }} /></div>
           {!totalSets && <button type="button" className="empty-card-action" onClick={(event) => { event.stopPropagation(); onNavigate?.("training"); }}>Add your first exercise</button>}
-          <div className="daily-meta"><span>{totalExercises} exercises</span><span>{volume} total reps</span><span>Rest timer ready</span></div>
+          <div className="daily-meta"><span>{totalExercises} exercises</span><span>{volume} planned reps</span></div>
         </article>
         <article className="daily-panel nutrition-panel clickable-panel" onClick={() => onNavigate?.("health")} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") onNavigate?.("health"); }} role="button" tabIndex="0">
           <div className="daily-panel-heading"><span className="panel-kicker">Today’s Nutrition</span><span className="panel-icon">NF</span></div>
-          <div className="nutrition-summary-row"><ProgressRing value={calorieProgress} /><div><strong>{caloriesRemaining.toFixed(0)} <small>kcal remaining</small></strong><span>{nutritionLog.length ? `${nutritionTotals.calories.toFixed(0)} food + ${exerciseCalories} exercise / ${calorieBudget} kcal budget` : "No food logged yet"}</span></div></div>
+          <div className="nutrition-summary-row"><ProgressRing value={calorieProgress} /><div><strong>{caloriesRemaining.toFixed(0)} <small>kcal remaining</small></strong><span>{nutritionLog.length ? `${nutritionTotals.calories.toFixed(0)} food · ${exerciseCalories} exercise / ${calorieBudget} kcal` : "No meals logged"}</span></div></div>
           {!nutritionLog.length && <button type="button" className="empty-card-action" onClick={(event) => { event.stopPropagation(); onNavigate?.("health"); }}>Log a meal</button>}
           <div className="protein-track"><div><span>Protein</span><strong>{nutritionTotals.protein.toFixed(0)} / {proteinGoal} g</strong></div><div className="metric-progress"><span style={{ width: `${proteinProgress}%` }} /></div></div>
         </article>
@@ -287,24 +286,24 @@ export default function Dashboard({ onNavigate }) {
 
       <div className="dashboard-ctas"><button type="button" onClick={() => onNavigate?.("training")}>Continue Workout <span aria-hidden="true">→</span></button><button type="button" onClick={() => onNavigate?.("health")}>Log Food <span aria-hidden="true">→</span></button></div>
 
-      <article className="streak-card"><div className="streak-mark">{combinedStreak}</div><div><p className="panel-kicker">Consistency streak</p><h3>{combinedStreak} active day{combinedStreak === 1 ? "" : "s"}</h3><span>Training and nutrition are moving together.</span></div><div className="streak-breakdown"><span>Training <strong>{currentStreak}</strong></span><span>Nutrition <strong>{nutritionDays.size > 0 ? 1 : 0}</strong></span></div></article>
+      <article className="streak-card"><div className="streak-mark">{combinedStreak}</div><div><p className="panel-kicker">Current streak</p><h3>{combinedStreak} active day{combinedStreak === 1 ? "" : "s"}</h3><span>Training: {currentStreak} days · Nutrition: {nutritionDays.size > 0 ? "logged today" : "not logged today"}</span></div></article>
 
       <div className="stats-grid">
-        <StatCard label="Current Streak" value={`${currentStreak} days`} detail="Keep the momentum" icon="ST" />
+        <StatCard label="Current Streak" value={`${currentStreak} days`} detail="Training days in a row" icon="ST" />
         <StatCard label="Weight / BMI" value={todayWeight ? `${Number(todayWeight.weight_kg).toFixed(1)} kg` : latestBmi} detail={todayWeight ? `BMI ${latestBmi}` : "Add a body check-in"} icon="WT" />
         <StatCard label="Exercises" value={totalExercises} detail={`${volume} reps in plan`} icon="EX" />
         <StatCard label="Completion" value={`${completionRate}%`} detail={`${completedSets} sets finished`} icon="CP" />
       </div>
 
       <div className="weekly-recap">
-        <div><p className="eyebrow">This week</p><h3>A little consistency goes a long way.</h3><p>Training and nutrition context, at a glance.</p></div>
+        <div><p className="eyebrow">This week</p><h3>Week to date</h3><p>Training and food logged in the last seven days.</p></div>
         <div className="recap-metric"><strong>{weeklyWorkouts.length}</strong><span>workouts</span></div><div className="recap-metric"><strong>{weeklyVolume}</strong><span>volume reps</span></div><div className="recap-metric"><strong>{weeklyCalories}</strong><span>calories logged</span></div>
       </div>
 
       <article className="quick-log-card">
-        <div><p className="eyebrow">Quick log</p><h3>Pick up where you left off</h3></div>
+        <div><p className="eyebrow">Quick log</p><h3>Recent items</h3></div>
         <div className="quick-log-actions">
-          {recentFoods.map((food) => <button type="button" key={food.id} onClick={() => quickLogFood(food)}><span>{food.name}</span><small>Log again</small></button>)}
+          {recentFoods.map((food) => <button type="button" key={food.id} onClick={() => quickLogFood(food)}><span>{food.food_name || food.name}</span><small>Log again</small></button>)}
           {recentWorkout && <button type="button" onClick={() => onNavigate?.("training")}><span>{recentWorkout.name}</span><small>Open workout</small></button>}
           {!recentFoods.length && !recentWorkout && <button type="button" onClick={() => onNavigate?.("health")}><span>Start your diary</span><small>Add your first meal</small></button>}
         </div>

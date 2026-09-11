@@ -1,4 +1,4 @@
-# FitTrack - Personal Fitness Companion
+# MacroFit - Personal Fitness Companion
 
 A modern web-based fitness tracking application built for personal trainers and fitness enthusiasts.
 

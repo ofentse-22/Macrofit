@@ -22,7 +22,7 @@ export default function DataExport() {
     const csv = rows.map(row => row.join(",")).join("\n");
     const link = document.createElement("a");
     link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-    link.download = 'fittrack-workouts.csv';
+    link.download = 'macrofit-workouts.csv';
     link.click();
     URL.revokeObjectURL(link.href);
   };

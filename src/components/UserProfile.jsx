@@ -94,7 +94,7 @@ export default function UserProfile() {
     <div className="profile-container">
       <header className="profile-header">
         <h2>Profile & Settings</h2>
-        <p className="subtitle">Personalize your FitLab experience</p>
+        <p className="subtitle">Manage your MacroFit profile and settings</p>
       </header>
 
       {message && <div className="profile-message">{message}</div>}
