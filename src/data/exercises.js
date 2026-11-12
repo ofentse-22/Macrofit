@@ -239,15 +239,4 @@ const exercises = [
     }
   ];
 
-const GENERATED_EXERCISES = Array.from({ length: 1500 }, (_, index) => {
-  const template = exercises[index % exercises.length];
-  const number = String(index + 1).padStart(3, "0");
-
-  return {
-    ...template,
-    name: `${template.name} - Variation ${number}`,
-    instructions: `${template.instructions}. Use controlled tempo and maintain proper form.`,
-  };
-});
-
-export default [...exercises, ...GENERATED_EXERCISES];
+export default exercises;

@@ -61,16 +61,13 @@
 .macro-view-toggle { display: flex; gap: 4px; padding: 3px; border: 1px solid var(--border-color); border-radius: 9px; background: var(--input-bg); }
 .macro-view-toggle button { padding: 5px 8px; border: 0; border-radius: 6px; background: transparent; color: var(--text-secondary); box-shadow: none !important; font-size: 0.72rem; }
 .macro-view-toggle button.active { background: var(--button-color); color: #fff; }
-.nutrition-support-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.water-card, .nutrition-nudge { display: flex; align-items: center; gap: 14px; padding: 16px; border: 1px solid var(--border-color); border-radius: var(--radius-card, 12px); background: var(--card-bg); box-shadow: var(--elevation-subtle); }
-.water-card h3, .nutrition-nudge h3 { margin: 4px 0; color: var(--text-primary); }
-.water-card { display: grid; align-items: stretch; }
-.water-card-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.nutrition-support-row { display: grid; gap: 14px; }
+.nutrition-nudge { display: flex; align-items: center; gap: 14px; padding: 16px; border: 1px solid var(--border-color); border-radius: var(--radius-card, 12px); background: var(--card-bg); box-shadow: var(--elevation-subtle); }
+.nutrition-nudge h3 { margin: 4px 0; color: var(--text-primary); }
 .nutrition-nudge { display: block; }
 .nutrition-nudge p:last-child { margin-top: 5px; color: var(--text-secondary); font-size: 0.82rem; }
   margin: 0;
 }
-  .nutrition-support-row { grid-template-columns: 1fr; }
   .macro-heading { align-items: flex-start; flex-direction: column; }
 
 .nutrition-header-buttons {
@@ -100,6 +97,74 @@
 .nutrition-goals-form h3 {
   color: var(--text-primary);
   margin-bottom: 16px;
+}
+
+.food-catalogue-attribution {
+  margin: -6px 0 12px;
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+}
+
+.food-catalogue-attribution a {
+  color: var(--accent-color, #60a5fa);
+}
+
+.food-search-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.food-search-controls input {
+  flex: 1;
+  min-width: 0;
+}
+
+.food-search-controls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.food-category-shortcuts,
+.food-pagination,
+.food-pagination > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.food-category-shortcuts {
+  margin: 10px 0 18px;
+}
+
+.food-pagination {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.food-pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.online-food-results {
+  margin-top: 22px;
+}
+
+.online-food-results h5,
+.common-foods > h5 {
+  margin: 0 0 10px;
+  color: var(--text-primary);
+}
+
+.online-food-results p {
+  color: var(--text-secondary);
+}
+
+.online-food-results .food-search-error {
+  color: #fca5a5;
   font-size: 1.1rem;
 }
 

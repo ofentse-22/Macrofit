@@ -1,6 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { goalsService, weightService, workoutService, streakService, analyticsService } from '../services/supabaseService';
 import './MyPlan.css';
+
+const calculateProgress = (startWeight, targetWeight, currentWeight) => {
+  if (startWeight === targetWeight) return 0;
+  const totalChange = targetWeight - startWeight;
+  const currentChange = currentWeight - startWeight;
+  return Math.max(0, Math.min(100, (currentChange / totalChange) * 100));
+};
+
+const calculateNextWorkoutDays = (workouts) => {
+  if (workouts.length === 0) return 0;
+  const lastWorkout = new Date(workouts[0].created_at);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  lastWorkout.setHours(0, 0, 0, 0);
+  return Math.ceil((today - lastWorkout) / (1000 * 60 * 60 * 24));
+};
 
 export default function MyPlan() {
   const [goal, setGoal] = useState(null);
@@ -15,11 +31,7 @@ export default function MyPlan() {
     daily_protein_target: 170,
   });
 
-  useEffect(() => {
-    loadPlanData();
-  }, []);
-
-  async function loadPlanData() {
+  const loadPlanData = useCallback(async () => {
     setLoading(true);
     try {
       const [userGoal, latestWeight, workouts, streak] = await Promise.all([
@@ -63,23 +75,11 @@ export default function MyPlan() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const calculateProgress = (startWeight, targetWeight, currentWeight) => {
-    if (startWeight === targetWeight) return 0;
-    const totalChange = targetWeight - startWeight;
-    const currentChange = currentWeight - startWeight;
-    return Math.max(0, Math.min(100, (currentChange / totalChange) * 100));
-  };
-
-  const calculateNextWorkoutDays = (workouts) => {
-    if (workouts.length === 0) return 0;
-    const lastWorkout = new Date(workouts[0].created_at);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    lastWorkout.setHours(0, 0, 0, 0);
-    return Math.ceil((today - lastWorkout) / (1000 * 60 * 60 * 24));
-  };
+  useEffect(() => {
+    queueMicrotask(() => loadPlanData());
+  }, [loadPlanData]);
 
   const handleSaveGoal = async (e) => {
     e.preventDefault();

@@ -1,22 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
 import "./WorkoutTracker.css";
 import exerciseLibrary from "../data/exercises";
+import { getRemoteExercises, mergeExerciseCatalog, normalizeExerciseName } from "../services/exerciseCatalogService";
 import RestTimer from "./RestTimer";
 import ExerciseImage from "./ExerciseImage";
 import { enqueue } from '../services/offlineQueue';
 import { workoutService } from '../services/supabaseService';
 
-function normalizeExerciseName(name) {
-  return String(name || '').toLowerCase().replace(/\s+variation\s*\d+$/i, '').replace(/dumbel/g, 'dumbbell').replace(/[^a-z0-9]/g, '');
-}
-
-function getExerciseImage(exercise) {
+function getExerciseImage(exercise, catalog) {
   const normalizedName = normalizeExerciseName(exercise.name);
-  const libraryExercise = exerciseLibrary.find((item) => normalizeExerciseName(item.name) === normalizedName);
+  const libraryExercise = catalog.find((item) => normalizeExerciseName(item.name) === normalizedName);
   return libraryExercise?.image || exercise.image_url || null;
 }
 
 export default function WorkoutTracker() {
+  const [catalogExercises, setCatalogExercises] = useState(exerciseLibrary);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [catalogError, setCatalogError] = useState("");
   const [exercises, setExercises] = useState([]);
   const [category, setCategory] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -28,7 +28,24 @@ export default function WorkoutTracker() {
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  
+  useEffect(() => {
+    let active = true;
+    getRemoteExercises()
+      .then((remoteExercises) => {
+        if (!active) return;
+        setCatalogExercises(mergeExerciseCatalog(exerciseLibrary, remoteExercises));
+        setCatalogLoading(false);
+      })
+      .catch((error) => {
+        console.error("Unable to load online exercise catalog:", error);
+        if (!active) return;
+        setCatalogError("Online exercise search is unavailable. You can still use the offline exercises.");
+        setCatalogLoading(false);
+      });
+
+    return () => { active = false; };
+  }, []);
+
   useEffect(() => {
     const loadExercises = async () => {
       const data = await workoutService.getWorkouts();
@@ -50,13 +67,13 @@ export default function WorkoutTracker() {
 
   const filteredExercises = useMemo(() => {
     const normalizedQuery = searchTerm.trim().toLowerCase();
-    return exerciseLibrary.filter((ex) => {
+    return catalogExercises.filter((ex) => {
       const matchesCategory = !category || ex.category === category;
       const matchesSearch = normalizedQuery.length === 0 || 
         ex.name.toLowerCase().includes(normalizedQuery);
       return matchesCategory && matchesSearch;
     });
-  }, [category, searchTerm]);
+  }, [catalogExercises, category, searchTerm]);
 
   const clearForm = () => {
     setCategory("");
@@ -74,7 +91,7 @@ export default function WorkoutTracker() {
       return;
     }
 
-    const selected = exerciseLibrary.find(ex => ex.name === exerciseName);
+    const selected = catalogExercises.find(ex => ex.name === exerciseName);
 
     const newExercise = {
       name: exerciseName,
@@ -218,6 +235,7 @@ export default function WorkoutTracker() {
                 <option value="Arms">Arms</option>
                 <option value="Core">Core</option>
                 <option value="Full Body">Full Body</option>
+                <option value="Other">Other</option>
               </select>
             </div>
 
@@ -240,6 +258,8 @@ export default function WorkoutTracker() {
                   <option key={ex.name} value={ex.name}>{ex.name}</option>
                 ))}
               </select>
+              {catalogLoading && <small>Loading online exercises…</small>}
+              {catalogError && <small className="exercise-catalog-error" role="status">{catalogError}</small>}
             </div>
 
             <div className="input-wrapper">
@@ -289,7 +309,7 @@ export default function WorkoutTracker() {
             <div className="empty-message"><p>No active workout yet. Start with one exercise.</p><button type="button" onClick={() => document.getElementById("exercise-form")?.scrollIntoView({ behavior: "smooth", block: "start" })}>Add your first exercise</button></div>
           ) : (
             exercises.map((exercise) => {
-              const imageUrl = getExerciseImage(exercise);
+              const imageUrl = getExerciseImage(exercise, catalogExercises);
 
               return (
               <div key={exercise.id} className="exercise-item">

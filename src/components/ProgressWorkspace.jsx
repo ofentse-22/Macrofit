@@ -3,6 +3,8 @@ import Analytics from "./Analytics";
 import ProgressiveOverload from "./ProgressiveOverload";
 import PersonalRecords from "./PersonalRecords";
 import Gamification from "./Gamification";
+import WeightTracker from "./WeightTracker";
+import BodyComposition from "./BodyComposition";
 
 const sections = [
   ["overview", "Overview & insights"],
@@ -11,8 +13,9 @@ const sections = [
   ["achievements", "Achievements"],
 ];
 
-export default function ProgressWorkspace({ onNavigate }) {
-  const [section, setSection] = useState("overview");
+export default function ProgressWorkspace({ onNavigate, autoOpenWeight = false }) {
+  const [section, setSection] = useState(() => autoOpenWeight ? "body" : "overview");
+  const [openWeightForm, setOpenWeightForm] = useState(autoOpenWeight);
 
   return (
     <section className="workspace-page" aria-labelledby="progress-heading">
@@ -26,7 +29,7 @@ export default function ProgressWorkspace({ onNavigate }) {
       </div>
       <nav className="workspace-tabs" aria-label="Progress sections">
         {sections.map(([id, label]) => (
-          <button key={id} type="button" className={section === id ? "active" : ""} onClick={() => setSection(id)} aria-pressed={section === id}>
+          <button key={id} type="button" className={section === id ? "active" : ""} onClick={() => { setSection(id); if (id !== "body") setOpenWeightForm(false); }} aria-pressed={section === id}>
             {label}
           </button>
         ))}
@@ -34,7 +37,7 @@ export default function ProgressWorkspace({ onNavigate }) {
       <div className="workspace-content">
         {section === "overview" && <Analytics onNavigate={onNavigate} />}
         {section === "strength" && <div className="workspace-stack"><ProgressiveOverload /><PersonalRecords /></div>}
-        {section === "body" && <Analytics />}
+        {section === "body" && <div className="workspace-stack"><WeightTracker autoOpen={openWeightForm} /><BodyComposition /></div>}
         {section === "achievements" && <Gamification />}
       </div>
     </section>

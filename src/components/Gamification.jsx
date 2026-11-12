@@ -1,6 +1,71 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { workoutService } from '../services/supabaseService';
 import './Gamification.css';
+
+function generateAchievements(workoutHistory) {
+  const achievements = [];
+
+  const milestones = [
+    { count: 1, name: 'First Workout', icon: '', xp: 50 },
+    { count: 5, name: 'Consistent', icon: '', xp: 100 },
+    { count: 10, name: 'Dedicated', icon: '', xp: 200 },
+    { count: 25, name: 'Seasoned Lifter', icon: '', xp: 500 },
+    { count: 50, name: 'Iron Warrior', icon: '', xp: 1000 },
+    { count: 100, name: 'Legend', icon: '', xp: 2000 },
+  ];
+
+  milestones.forEach(milestone => {
+    if (workoutHistory.length >= milestone.count) {
+      achievements.push({
+        name: milestone.name,
+        description: `Complete ${milestone.count} workouts`,
+        icon: milestone.icon,
+        xp: milestone.xp,
+        unlocked: true,
+      });
+    }
+  });
+
+  const streakMilestones = [
+    { days: 3, name: 'On Fire', icon: '', xp: 75 },
+    { days: 7, name: 'Weekly Warrior', icon: '', xp: 150 },
+    { days: 14, name: 'Fortnight Champ', icon: '', xp: 300 },
+    { days: 30, name: 'Monthly Master', icon: '', xp: 500 },
+  ];
+
+  streakMilestones.forEach(milestone => {
+    achievements.push({
+      name: milestone.name,
+      description: `${milestone.days}-day workout streak`,
+      icon: milestone.icon,
+      xp: milestone.xp,
+      unlocked: false,
+    });
+  });
+
+  if (workoutHistory.length > 0) {
+    const totalSets = workoutHistory.reduce((sum, w) => sum + (w.totalSets || 0), 0);
+    const volumeAchievements = [
+      { sets: 50, name: 'Volume Builder', icon: '', xp: 100 },
+      { sets: 200, name: 'Mass Constructor', icon: '', xp: 250 },
+      { sets: 500, name: 'Volume Machine', icon: '', xp: 500 },
+    ];
+
+    volumeAchievements.forEach(achievement => {
+      if (totalSets >= achievement.sets) {
+        achievements.push({
+          name: achievement.name,
+          description: `Complete ${achievement.sets} total sets`,
+          icon: achievement.icon,
+          xp: achievement.xp,
+          unlocked: true,
+        });
+      }
+    });
+  }
+
+  return achievements.filter((a, i, arr) => arr.findIndex(t => t.name === a.name) === i);
+}
 
 export default function Gamification() {
   const [stats, setStats] = useState({
@@ -12,7 +77,7 @@ export default function Gamification() {
   const [loading, setLoading] = useState(true);
   const [referenceTime] = useState(() => Date.now());
 
-  async function loadGamificationData() {
+  const loadGamificationData = useCallback(async () => {
     try {
       const workouts = await workoutService.getWorkouts();
       const workoutHistory = workouts.map((workout) => ({ ...workout, completedAt: workout.created_at }));
@@ -50,7 +115,6 @@ export default function Gamification() {
       bestStreak = Math.max(bestStreak, tempStreak);
 
       // Generate achievements
-      // eslint-disable-next-line react-hooks/immutability
       const generatedAchievements = generateAchievements(workoutHistory);
 
       setStats({
@@ -64,80 +128,11 @@ export default function Gamification() {
       console.error('Error loading gamification data:', error);
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     queueMicrotask(() => loadGamificationData());
-  }, []);
-
-  function generateAchievements(workoutHistory) {
-    const achievements = [];
-
-    // Milestone achievements
-    const milestones = [
-      { count: 1, name: 'First Workout', icon: '', xp: 50 },
-      { count: 5, name: 'Consistent', icon: '', xp: 100 },
-      { count: 10, name: 'Dedicated', icon: '', xp: 200 },
-      { count: 25, name: 'Seasoned Lifter', icon: '', xp: 500 },
-      { count: 50, name: 'Iron Warrior', icon: '', xp: 1000 },
-      { count: 100, name: 'Legend', icon: '', xp: 2000 },
-    ];
-
-    milestones.forEach(milestone => {
-      if (workoutHistory.length >= milestone.count) {
-        achievements.push({
-          name: milestone.name,
-          description: `Complete ${milestone.count} workouts`,
-          icon: milestone.icon,
-          xp: milestone.xp,
-          unlocked: true,
-        });
-      }
-    });
-
-    // Streak achievements
-    const streakMilestones = [
-      { days: 3, name: 'On Fire', icon: '', xp: 75 },
-      { days: 7, name: 'Weekly Warrior', icon: '', xp: 150 },
-      { days: 14, name: 'Fortnight Champ', icon: '', xp: 300 },
-      { days: 30, name: 'Monthly Master', icon: '', xp: 500 },
-    ];
-
-    // Note: We can't calculate actual streaks here without date info, so we'll show them as locked
-    streakMilestones.forEach(milestone => {
-      achievements.push({
-        name: milestone.name,
-        description: `${milestone.days}-day workout streak`,
-        icon: milestone.icon,
-        xp: milestone.xp,
-        unlocked: false,
-      });
-    });
-
-    // Volume achievements
-    if (workoutHistory.length > 0) {
-      const totalSets = workoutHistory.reduce((sum, w) => sum + (w.totalSets || 0), 0);
-      const volumeAchievements = [
-        { sets: 50, name: 'Volume Builder', icon: '', xp: 100 },
-        { sets: 200, name: 'Mass Constructor', icon: '', xp: 250 },
-        { sets: 500, name: 'Volume Machine', icon: '', xp: 500 },
-      ];
-
-      volumeAchievements.forEach(achievement => {
-        if (totalSets >= achievement.sets) {
-          achievements.push({
-            name: achievement.name,
-            description: `Complete ${achievement.sets} total sets`,
-            icon: achievement.icon,
-            xp: achievement.xp,
-            unlocked: true,
-          });
-        }
-      });
-    }
-
-    return achievements.filter((a, i, arr) => arr.findIndex(t => t.name === a.name) === i);
-  };
+  }, [loadGamificationData]);
 
   if (loading) {
     return <div className="gamification-container loading">Loading achievements...</div>;

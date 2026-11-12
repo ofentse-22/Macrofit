@@ -69,6 +69,39 @@
   margin-top: 12px;
 }
 
+.catalog-status,
+.catalog-attribution,
+.catalog-error {
+  margin: 8px 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.catalog-attribution a,
+.exercise-source a {
+  color: var(--accent-color);
+}
+
+.catalog-error {
+  color: #fca5a5;
+}
+
+.exercise-source {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.load-more-exercises {
+  display: block;
+  margin: 24px auto;
+  padding: 10px 16px;
+  border: 1px solid var(--button-muted-border);
+  border-radius: var(--radius-control, 9px);
+  background: var(--button-muted-bg);
+  color: var(--button-muted-text);
+  cursor: pointer;
+}
+
 .exercise-card {
   background: var(--card-bg);
   border: 1px solid var(--border-color);

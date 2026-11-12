@@ -98,6 +98,7 @@ button:disabled {
 
 .empty-message button { margin-top: 14px; }
 .workout-loading { color: var(--text-secondary); padding: 12px 0; }
+.exercise-catalog-error { display: block; color: #fca5a5; margin-top: 6px; }
 
 .exercise-item {
   border: 1px solid var(--border-color);

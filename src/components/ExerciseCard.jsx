@@ -15,6 +15,14 @@ export default function ExerciseCard({ exercise, isFavorite, onToggleFavorite })
       </div>
       <p><strong>Category:</strong> {exercise.category}</p>
       <p>{exercise.instructions}</p>
+      {exercise.source && (
+        <p className="exercise-source">
+          Source: <a href={exercise.sourceUrl} target="_blank" rel="noreferrer">{exercise.source}</a>
+          {exercise.license && (
+            <> · <a href={exercise.licenseUrl} target="_blank" rel="noreferrer">{exercise.license}</a></>
+          )}
+        </p>
+      )}
 
       <ExerciseImage src={exercise.image} name={exercise.name} />
     </div>

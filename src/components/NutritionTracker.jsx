@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import "./NutritionTracker.css";
 import { nutritionService, workoutService } from "../services/supabaseService";
 import { cancelQueuedCreate, enqueue, updateQueuedCreate } from "../services/offlineQueue";
 import { calculateCaloriesRemaining, calculateExerciseCalories } from "../services/nutritionCalculations";
 import { getLocalDate } from "../services/dateUtils";
+import { deduplicateFoods, getFoodIdentity, searchOpenFoodFacts } from "../services/openFoodFactsService";
 
 const COMMON_FOODS = [
   { id: 1, name: "Chicken Breast (100g)", calories: 165, protein: 31, carbs: 0, fat: 3.6 },
@@ -63,26 +64,6 @@ const COMMON_FOODS = [
   { id: 99, name: "Trail Mix (50g)", calories: 240, protein: 6, carbs: 22, fat: 15 }, { id: 100, name: "Popcorn, air popped (3 cups)", calories: 93, protein: 3, carbs: 19, fat: 1 },
 ];
 
-// A broad searchable catalogue. Values are general estimates per serving; use
-// the weighed-food calculator below when a packet label or kitchen scale is available.
-const EXPANDED_FOOD_NAMES = `Aubergine Artichoke Arugula Beetroot BokChoy BrusselsSprouts Cabbage Celery Courgette Eggplant Fennel Leek Okra Onion Parsnip Peas Pumpkin Radish Rocket Rutabaga Turnip Zucchini Apricot Blackberry Cantaloupe Cherry Clementine Cranberry Date Fig Grapefruit Guava Kiwi Lemon Lime Lychee Nectarine Papaya Passionfruit Plum Pomegranate Raspberry Satsuma Tangerine Coconut Macadamia Pecan Pistachio BrazilNut Hazelnut SunflowerSeeds PumpkinSeeds FlaxSeeds SesameSeeds Barley Buckwheat Bulgur Farro Millet Polenta RyeBread Sourdough BreadRoll Bagel Pita Breadstick Noodles Ramen Gnocchi Lasagne Tortilla Crackers Muesli Weetabix BranFlakes Risotto ArborioRice BasmatiRice JasmineRice WildRice ChickenThigh ChickenDrumstick ChickenWing Duck Breast LambChop LambLeg Veal Mince BeefSteak Sirloin Ribeye Sardines Mackerel Hake Tilapia Trout Anchovies Mussels Clams Crab Lobster Squid Octopus Bacon Ham Salami Chorizo EggWhite Feta Ricotta Parmesan Brie Camembert Halloumi SoyMilk OatMilk AlmondMilk RiceMilk IceCream Gelato Custard Butter Ghee Margarine Cream SourCream Buttermilk`.split(' ');
-
-const CATALOGUE_SERVINGS = Array.from({ length: 64 }, (_, index) => 50 + index * 25);
-
-const CATALOGUE_FOODS = EXPANDED_FOOD_NAMES.flatMap((name, index) => {
-  const base = { calories: 55 + (index % 9) * 20, protein: 2 + (index % 7) * 2.5, carbs: 5 + (index % 8) * 4, fat: 0.5 + (index % 6) * 1.8 };
-  return CATALOGUE_SERVINGS.map((grams, serving) => ({
-    id: 101 + index * CATALOGUE_SERVINGS.length + serving,
-    name: `${name} (${grams}g, estimate)`,
-    calories: Math.round(base.calories * grams / 100),
-    protein: Number((base.protein * grams / 100).toFixed(1)),
-    carbs: Number((base.carbs * grams / 100).toFixed(1)),
-    fat: Number((base.fat * grams / 100).toFixed(1)),
-  }));
-});
-
-const ALL_FOODS = [...COMMON_FOODS, ...CATALOGUE_FOODS];
-
 function MacroBar({ label, consumed, goal, color, displayValue }) {
   const percentage = goal > 0 ? Math.min((consumed / goal) * 100, 100) : 0;
 
@@ -125,8 +106,16 @@ export default function NutritionTracker({ autoOpen = false }) {
   const [showCustomFood, setShowCustomFood] = useState(false);
   const [selectedFood, setSelectedFood] = useState(null);
   const [foodSearch, setFoodSearch] = useState("");
+  const [onlineSearchQuery, setOnlineSearchQuery] = useState("");
+  const [onlineSearchRequest, setOnlineSearchRequest] = useState(0);
+  const [onlineFoods, setOnlineFoods] = useState([]);
+  const [foodSearchLoading, setFoodSearchLoading] = useState(false);
+  const [foodSearchError, setFoodSearchError] = useState("");
+  const [foodSearchTotal, setFoodSearchTotal] = useState(0);
+  const [foodSearchPage, setFoodSearchPage] = useState(1);
+  const [foodSearchPageCount, setFoodSearchPageCount] = useState(0);
+  const onlineFoodPages = useRef(new Map());
   const [macroView, setMacroView] = useState("grams");
-  const [waterIntake, setWaterIntake] = useState(() => Number(localStorage.getItem("fitlab-water") || 0));
   const [customFood, setCustomFood] = useState({ name: "", grams: "100", calories: "", protein: "", carbs: "", fat: "" });
   const [offlineMessage, setOfflineMessage] = useState("");
 
@@ -141,8 +130,41 @@ export default function NutritionTracker({ autoOpen = false }) {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("fitlab-water", String(waterIntake));
-  }, [waterIntake]);
+    const query = onlineSearchQuery.trim();
+    if (query.length < 2) return undefined;
+
+    const controller = new AbortController();
+    searchOpenFoodFacts(query, foodSearchPage, controller.signal)
+      .then((result) => {
+        const previouslySeen = new Set();
+        for (let page = 1; page < foodSearchPage; page += 1) {
+          for (const food of onlineFoodPages.current.get(page) || []) {
+            previouslySeen.add(getFoodIdentity(food));
+          }
+        }
+        const uniqueProducts = deduplicateFoods(result.products, previouslySeen);
+        onlineFoodPages.current.set(foodSearchPage, uniqueProducts);
+        setOnlineFoods(uniqueProducts);
+        setFoodSearchTotal(result.total);
+        setFoodSearchPageCount(result.pageCount);
+      })
+      .catch((error) => {
+        if (error?.name !== "AbortError") {
+          setOnlineFoods([]);
+          setFoodSearchTotal(0);
+          setFoodSearchPageCount(0);
+          setFoodSearchError("Online food search is unavailable. Check your connection or clear the search to browse offline quick picks.");
+          console.error("Open Food Facts search failed:", error);
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setFoodSearchLoading(false);
+      });
+
+    return () => {
+      controller.abort();
+    };
+  }, [onlineSearchQuery, foodSearchPage, onlineSearchRequest]);
 
   const totals = meals.reduce(
     (acc, meal) => ({
@@ -196,9 +218,21 @@ export default function NutritionTracker({ autoOpen = false }) {
     } catch { alert("Unable to save nutrition goals. Please try again."); }
   };
 
+  const searchOnlineFoods = (query) => {
+    const normalizedQuery = query.trim();
+    if (normalizedQuery.length < 2) return;
+    onlineFoodPages.current = new Map();
+    setFoodSearch(normalizedQuery);
+    setOnlineSearchQuery(normalizedQuery);
+    setFoodSearchPage(1);
+    setFoodSearchError("");
+    setFoodSearchLoading(true);
+    setOnlineSearchRequest((request) => request + 1);
+  };
+
   const addFood = async (food) => {
     const today = getLocalDate();
-    const payload = { meal_date: today, meal_type: selectedMealType, food_name: food.name, quantity: food.grams || null, quantity_unit: food.grams ? "g" : null, calories: food.calories, protein_g: food.protein, carbs_g: food.carbs, fat_g: food.fat };
+    const payload = { meal_date: today, meal_type: selectedMealType, food_name: food.name, quantity: food.grams || null, quantity_unit: food.grams ? food.unit || "g" : null, calories: food.calories, protein_g: food.protein, carbs_g: food.carbs, fat_g: food.fat };
     try {
       const clientId = !navigator.onLine ? crypto.randomUUID() : null;
       const saved = navigator.onLine ? await nutritionService.addLog(payload) : { ...payload, id: clientId };
@@ -442,7 +476,6 @@ export default function NutritionTracker({ autoOpen = false }) {
       </div>
 
       <div className="nutrition-support-row">
-        <article className="water-card"><div className="water-card-heading"><div><p className="panel-kicker">Hydration</p><h3>Hydration: {waterIntake} / 8 glasses</h3></div><button type="button" className="btn-secondary" onClick={() => setWaterIntake((value) => Math.min(8, value + 1))}>Add glass</button></div></article>
         {totals.protein < goals.protein * 0.5 && <article className="nutrition-nudge"><p className="panel-kicker">Daily nudge</p><h3>Protein is behind target</h3><p>Add a protein-rich meal to stay aligned with your goal.</p></article>}
       </div>
 
@@ -546,7 +579,7 @@ export default function NutritionTracker({ autoOpen = false }) {
               <div className="food-confirm-sheet" role="dialog" aria-label={`Add ${selectedFood.food.name}`}>
                 <div className="food-confirm-header"><div><p className="panel-kicker">Ready to log</p><h4>{selectedFood.food.name}</h4></div><button type="button" className="btn-secondary" onClick={() => setSelectedFood(null)}>Cancel</button></div>
                 <div className="food-confirm-fields">
-                  <label>Amount (g)<input type="number" min="1" step="1" value={selectedFood.grams} onChange={(event) => setSelectedFood({ ...selectedFood, grams: event.target.value })} autoFocus /></label>
+                  <label>Amount ({selectedFood.food.unit || "g"})<input type="number" min="1" step="1" value={selectedFood.grams} onChange={(event) => setSelectedFood({ ...selectedFood, grams: event.target.value })} autoFocus /></label>
                   <label>Meal type<select value={selectedMealType} onChange={(event) => setSelectedMealType(event.target.value)}><option value="breakfast">Breakfast</option><option value="lunch">Lunch</option><option value="dinner">Dinner</option><option value="snacks">Snacks</option></select></label>
                 </div>
                 <div className="food-confirm-macros"><span>{selectedFoodNutrition.calories} kcal</span><span>{selectedFoodNutrition.protein}g protein</span><span>{selectedFoodNutrition.carbs}g carbs</span><span>{selectedFoodNutrition.fat}g fat</span></div>
@@ -556,10 +589,25 @@ export default function NutritionTracker({ autoOpen = false }) {
 
             {!showCustomFood && !selectedFood && (
               <div className="common-foods">
-                <h4>Food Catalogue ({ALL_FOODS.length} foods)</h4>
-                <input type="search" value={foodSearch} onChange={(e) => setFoodSearch(e.target.value)} placeholder="Search foods" aria-label="Search foods" />
+                <h4>Search 30,000+ foods and products</h4>
+                <p className="food-catalogue-attribution">Search packaged snacks, drinks, and more from <a href="https://world.openfoodfacts.org/" target="_blank" rel="noreferrer">Open Food Facts</a>. Nutrition data is provided by contributors; check product labels when accuracy matters.</p>
+                <form className="food-search-controls" onSubmit={(event) => { event.preventDefault(); searchOnlineFoods(foodSearch); }}>
+                  <input
+                    type="search"
+                    value={foodSearch}
+                    onChange={(event) => setFoodSearch(event.target.value)}
+                    placeholder="Search products, snacks, drinks..."
+                    aria-label="Search foods and products"
+                  />
+                  <button type="submit" className="btn-primary" disabled={foodSearch.trim().length < 2}>Search online</button>
+                </form>
+                <div className="food-category-shortcuts" aria-label="Popular food searches">
+                  <button type="button" className="btn-secondary" onClick={() => searchOnlineFoods("snacks")}>Snacks</button>
+                  <button type="button" className="btn-secondary" onClick={() => searchOnlineFoods("drinks")}>Drinks</button>
+                </div>
+                <h5>Offline quick picks</h5>
                 <div className="foods-grid">
-                  {ALL_FOODS.filter((food) => food.name.toLowerCase().includes(foodSearch.trim().toLowerCase())).slice(0, 60).map((food) => (
+                  {deduplicateFoods(COMMON_FOODS).filter((food) => food.name.toLowerCase().includes(foodSearch.trim().toLowerCase())).slice(0, 60).map((food) => (
                     <button
                       key={food.id}
                       onClick={() => selectFood(food)}
@@ -571,6 +619,32 @@ export default function NutritionTracker({ autoOpen = false }) {
                     </button>
                   ))}
                 </div>
+                {onlineSearchQuery.trim().length >= 2 && foodSearch.trim() === onlineSearchQuery.trim() && (
+                  <section className="online-food-results" aria-live="polite">
+                    <h5>Online product results for “{onlineSearchQuery}”</h5>
+                    {foodSearchLoading && <p role="status">Searching Open Food Facts...</p>}
+                    {foodSearchError && <p className="food-search-error" role="alert">{foodSearchError}</p>}
+                    {!foodSearchLoading && !foodSearchError && onlineFoods.length === 0 && <p>No products with nutrition data were found for that search.</p>}
+                    <div className="foods-grid">
+                      {onlineFoods.map((food) => (
+                        <button key={getFoodIdentity(food)} onClick={() => selectFood(food)} className="food-button">
+                          {food.name}
+                          <br />
+                          <small>{food.calories} kcal / 100{food.unit}</small>
+                        </button>
+                      ))}
+                    </div>
+                    {!foodSearchLoading && foodSearchTotal > 0 && (
+                      <div className="food-pagination">
+                        <span>Page {foodSearchPage} of {foodSearchPageCount || "?"} · {foodSearchTotal.toLocaleString()} matching products</span>
+                        <div>
+                          <button type="button" className="btn-secondary" onClick={() => { setFoodSearchLoading(true); setFoodSearchPage((page) => Math.max(1, page - 1)); }} disabled={foodSearchPage <= 1 || foodSearchLoading}>Previous</button>
+                          <button type="button" className="btn-secondary" onClick={() => { setFoodSearchLoading(true); setFoodSearchPage((page) => page + 1); }} disabled={foodSearchPage >= foodSearchPageCount || foodSearchLoading}>Next</button>
+                        </div>
+                      </div>
+                    )}
+                  </section>
+                )}
               </div>
             )}
           </div>
