@@ -102,6 +102,9 @@
 
 .form-group input,
 .form-group select {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--border-color);
   border-radius: 6px;
@@ -340,5 +343,9 @@
 
   .profile-section h3 {
     font-size: 1.1rem;
+  }
+
+  .form-group label {
+    letter-spacing: 0.03em;
   }
 }

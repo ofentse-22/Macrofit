@@ -13,6 +13,10 @@ function getExerciseImage(exercise, catalog) {
   return libraryExercise?.image || exercise.image_url || null;
 }
 
+function getExerciseBaseName(name) {
+  return String(name || "").replace(/\s*(?:[-:]\s*)?variation\s*\d+\s*$/i, "").trim();
+}
+
 export default function WorkoutTracker() {
   const [catalogExercises, setCatalogExercises] = useState(exerciseLibrary);
   const [catalogLoading, setCatalogLoading] = useState(true);
@@ -67,12 +71,17 @@ export default function WorkoutTracker() {
 
   const filteredExercises = useMemo(() => {
     const normalizedQuery = searchTerm.trim().toLowerCase();
-    return catalogExercises.filter((ex) => {
-      const matchesCategory = !category || ex.category === category;
-      const matchesSearch = normalizedQuery.length === 0 || 
-        ex.name.toLowerCase().includes(normalizedQuery);
-      return matchesCategory && matchesSearch;
+    const uniqueExercises = new Map();
+    catalogExercises.forEach((exercise) => {
+      const baseName = getExerciseBaseName(exercise.name);
+      const matchesCategory = !category || exercise.category === category;
+      const matchesSearch = normalizedQuery.length === 0 || baseName.toLowerCase().includes(normalizedQuery);
+      const identity = normalizeExerciseName(baseName);
+      if (matchesCategory && matchesSearch && identity && !uniqueExercises.has(identity)) {
+        uniqueExercises.set(identity, exercise);
+      }
     });
+    return [...uniqueExercises.values()];
   }, [catalogExercises, category, searchTerm]);
 
   const clearForm = () => {
@@ -250,14 +259,37 @@ export default function WorkoutTracker() {
               />
             </div>
 
-            <div className="input-wrapper">
-              <label>Exercise</label>
-              <select value={exerciseName} onChange={(e) => setExerciseName(e.target.value)} disabled={!category}>
-                <option value="">Select Exercise</option>
-                {filteredExercises.map((ex) => (
-                  <option key={ex.name} value={ex.name}>{ex.name}</option>
-                ))}
-              </select>
+            <div className="input-wrapper exercise-picker">
+              <label>Choose an exercise</label>
+              <div className="exercise-choice-grid" aria-label="Available exercises">
+                {filteredExercises.map((exercise) => {
+                  const baseName = getExerciseBaseName(exercise.name);
+                  const isSelected = exerciseName
+                    ? normalizeExerciseName(exerciseName) === normalizeExerciseName(baseName)
+                    : false;
+                  return (
+                    <button
+                      key={normalizeExerciseName(baseName)}
+                      type="button"
+                      className={`exercise-choice-card${isSelected ? " selected" : ""}`}
+                      onClick={() => setExerciseName(exercise.name)}
+                      aria-pressed={isSelected}
+                    >
+                      <ExerciseImage
+                        src={exercise.image}
+                        name={baseName}
+                        className="exercise-choice-image"
+                      />
+                      <span>{baseName}</span>
+                    </button>
+                  );
+                })}
+                {!filteredExercises.length && (
+                  <p className="exercise-choice-empty">
+                    {category ? "No exercises match your search." : "Choose a category to browse exercises."}
+                  </p>
+                )}
+              </div>
               {catalogLoading && <small>Loading online exercises…</small>}
               {catalogError && <small className="exercise-catalog-error" role="status">{catalogError}</small>}
             </div>
